@@ -39,7 +39,23 @@ const LoginPage = () => {
             // If login succeeds here, the user state will update triggering potential redirects
             // in App.jsx or the useEffect above on next render. Let's navigate explicitly:
             navigate('/dashboard'); // Navigate after successful login call
+            const data = await res.json(); // Get backend response data
 
+            if (!res.ok) {
+                throw new Error(data.error || data.message || 'Login failed');
+            }
+
+            // *** CHECK THIS PART ***
+            // Ensure 'data.token' and 'data.role' exist and are correct
+            console.log("Login successful, response data:", data);
+            if (data.token && data.role) {
+                await login(data.token, data.role); // Pass TOKEN and ROLE to context login
+                navigate('/dashboard');
+            } else {
+                // Handle case where backend didn't send token/role properly
+                setError("Login succeeded but couldn't retrieve session data.");
+                setLoading(false);
+            }
         } catch (err) {
             // If the login function in context throws specific errors or returns failure info
             console.error("Login Page Error:", err);
@@ -52,7 +68,7 @@ const LoginPage = () => {
 
     // Prevent rendering form if auth is still loading initially
     if (isAuthLoading) {
-         // You might want a more styled loading indicator matching the theme
+        // You might want a more styled loading indicator matching the theme
         return <div className={styles.container}><p>Loading...</p></div>;
     }
 
@@ -90,9 +106,9 @@ const LoginPage = () => {
                         {loading ? 'Logging In...' : 'Login'}
                     </button>
                 </form>
-                 <p className={styles.switchPageLink}>
+                <p className={styles.switchPageLink}>
                     Don't have an account? <Link to="/register">Register here</Link>
-                 </p>
+                </p>
             </div>
         </div>
     );

@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-
+import { jwtDecode } from "jwt-decode"; // <-- IMPORT THIS
 // Define initial context structure (optional but good practice)
 const initialContext = {
   user: null,
-  login: async (token, role) => {}, // Placeholder async function
-  logout: () => {},
+  login: async (token, role) => { }, // Placeholder async function
+  logout: () => { },
   isAuthLoading: true, // Default loading state
 };
 
@@ -34,8 +34,8 @@ export const AuthProvider = ({ children }) => {
         // Determine which endpoint to hit based on stored role (or token content if preferred)
         // Using storedRole here, but decoding JWT is another option
         const endpoint = storedRole === 'admin'
-            ? `http://localhost:5001/api/user/admin` // Your specific admin check endpoint
-            : `http://localhost:5001/api/user/user`;   // Your specific user check endpoint
+          ? `http://localhost:5001/api/user/admin` // Your specific admin check endpoint
+          : `http://localhost:5001/api/user/user`;   // Your specific user check endpoint
 
         const response = await fetch(endpoint, {
           headers: { Authorization: `Bearer ${token}` },
@@ -50,12 +50,12 @@ export const AuthProvider = ({ children }) => {
         const userData = await response.json();
 
         if (userData && (userData.name || userData.email)) { // Check for essential data
-            // IMPORTANT: Ensure the backend endpoint returns the 'role'
-            console.log("AuthProvider: User verified successfully.", userData);
-            setUser(userData); // Set the user data from the response
+          // IMPORTANT: Ensure the backend endpoint returns the 'role'
+          console.log("AuthProvider: User verified successfully.", userData);
+          setUser(userData); // Set the user data from the response
         } else {
-            console.warn("AuthProvider: Verification OK but invalid user data received.");
-            throw new Error("Invalid user data");
+          console.warn("AuthProvider: Verification OK but invalid user data received.");
+          throw new Error("Invalid user data");
         }
       } catch (error) {
         console.error("AuthProvider: Auth verification error:", error.message);
@@ -73,42 +73,44 @@ export const AuthProvider = ({ children }) => {
 
   // Login Function - receives token and role from backend login response
   const login = async (token, role) => {
-    console.log(`AuthProvider: Logging in with role: ${role}`);
+    console.log(`AuthProvider: login called. Role: ${role}`);
+    console.log(`AuthProvider: Received Token (length ${token?.length}): ${token ? token.substring(0, 15) + '...' : 'null'}`); // Log safely
+    const decoded = jwtDecode(token); // <-- Use jwtDecode() function
+    if (decoded && decoded.id) {
+        // ... setUser ...
+    } else {
+        throw new Error("Failed to decode token after login");
+    }
+    // --- Store Token and Role ---
     localStorage.setItem("token", token);
-    localStorage.setItem("role", role); // Store role if needed for initial check
-    setIsAuthLoading(true); // Set loading while fetching user data after login
+    localStorage.setItem("role", role); // Store role if needed elsewhere
 
+    // --- TEMPORARY: Set basic user state WITHOUT fetching ---
+    console.log("AuthProvider: Bypassing immediate fetch, setting basic user state.");
     try {
-        // Fetch user data immediately after successful login to populate context
-         const endpoint = role === 'admin'
-            ? `http://localhost:5001/api/user/admin`
-            : `http://localhost:5001/api/user/user`;
-
-        const response = await fetch(endpoint, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        const userData = await response.json();
-
-        if (!response.ok) {
-            throw new Error(userData.message || 'Failed to fetch user data after login');
-        }
-
-        if (userData && (userData.name || userData.email)) {
-            console.log("AuthProvider: User data fetched post-login.", userData);
-            setUser(userData); // Set user state
+        // Decode token locally just to get ID (handle potential errors)
+        const decoded = jwt.decode(token); // Use jwt-decode library or similar if needed on client
+        if (decoded && decoded.id) {
+             // Set a minimal user object - enough for ProtectedRoute to work
+            setUser({
+                id: decoded.id, // Or use _id if that's what your components expect
+                role: role,
+                // Add name: 'Loading...' if needed, but main goal is non-null user
+            });
+            setIsAuthLoading(false); // Indicate we consider auth resolved for now
+            console.log("AuthProvider: Minimal user state set:", { id: decoded.id, role: role });
         } else {
-             throw new Error('Invalid user data received post-login');
+            throw new Error("Failed to decode token after login");
         }
     } catch (error) {
-        console.error("AuthProvider: Error fetching user data post-login:", error);
-        // Clear potentially invalid stored items if fetch fails
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        setUser(null);
-    } finally {
-        setIsAuthLoading(false); // Finished loading post-login data attempt
-    }
-  };
+         console.error("AuthProvider: Error setting minimal user state after login:", error);
+         // If even this fails, clear everything
+         localStorage.removeItem("token");
+         localStorage.removeItem("role");
+         setUser(null);
+         setIsAuthLoading(false);
+         // Rethrow or handle error appropriately
+    }}
 
   // Logout Function
   const logout = () => {
@@ -121,10 +123,10 @@ export const AuthProvider = ({ children }) => {
 
   // Context value provided to consuming components
   const value = {
-      user,
-      login,
-      logout,
-      isAuthLoading // Provide loading state
+    user,
+    login,
+    logout,
+    isAuthLoading // Provide loading state
   };
 
   return (
