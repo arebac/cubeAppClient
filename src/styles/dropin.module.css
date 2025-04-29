@@ -1,113 +1,178 @@
 /* src/styles/dropin.module.css */
 
+/* --- Base Container --- */
 .container {
-    padding: 20px;
-    max-width: 800px;
-    margin: 20px auto;
-    background-color: #333; /* Dark background */
-    color: white;
-    border-radius: 8px;
-    /* Add padding-top if needed for navbar */
-    padding-top: 80px; /* Example */
-  }
-  
-  .title {
-    text-align: center;
-    color: #E0A900; /* Theme color */
-    margin-bottom: 30px;
-  }
-  
-  .classes {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 30px;
-  }
-  
-  .classCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center content horizontally */
+  min-height: 100vh;
+  background: black;
+  color: white;
+  padding: 20px;
+  padding-top: 85px; /* Space for fixed navbar (adjust value) */
+  box-sizing: border-box;
+}
 
-    background: #444; /* Slightly lighter card */
-    padding: 15px;
-    border-radius: 6px;
-    border: 1px solid #555;
-    cursor: pointer;
-    transition: background-color 0.3s, border-color 0.3s;
+/* --- Page Title --- */
+.title {
+  font-size: 2.2rem;
+  color: #E0A900; /* Theme yellow */
+  text-align: center;
+  margin-bottom: 30px; /* Space below title */
+  font-weight: bold;
+}
+
+/* --- Container for Date Cards --- */
+/* Let items stack naturally, control width and centering */
+.classes {
+  width: 100%;
+  max-width: 550px; /* Limit width on desktop */
+  margin-bottom: 30px; /* Space below date list */
+  display: flex; /* Use flex column for consistent gap */
+  flex-direction: column;
+  align-items: center; /* Center items within the max-width */
+  gap: 15px; /* Space between date cards */
+}
+
+/* --- Base Style for Date Cards & Time Slot Cards --- */
+/* This style applies to the date divs AND the time slot divs */
+.classCard {
+  background:#E0A900; /* Theme yellow */
+  color: #3B2E20; /* Dark text */
+  padding: 15px 25px;
+  border-radius: 10px; /* More rounded */
+  width: 100%; /* Take full width of parent container */
+  box-sizing: border-box; /* Include padding in width */
+  text-align: center;
+  border: 2px solid #FFDA72; /* Default border */
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); /* Softer shadow */
+  font-weight: bold;
+  font-size: 1rem; /* Base font size */
+  position: relative; /* For checkmark pseudo-elements if needed */
+}
+
+.classCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Style for the SELECTED Date Card or Time Slot */
+.classCard.selected {
+  border-color: white; /* White border for selection */
+  /* Add a glow effect */
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 4px 10px rgba(0, 0, 0, 0.3);
+  /* Darken background slightly on select? Optional */
+  /* background-color: #d4a000; */
+}
+
+/* Container for the Time Slots (when date is expanded) */
+.classList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Space between time slots */
+  width: 90%; /* Indent the list */
+  margin: 15px auto 0 auto; /* Top margin, centered horizontally */
+  padding-top: 15px; /* Space below the separator line */
+  border-top: 1px solid #5c4d3d; /* Separator line */
+  /* No background or border needed for the list container itself */
+}
+
+/* Text shown when no classes are available */
+.noClasses {
+    font-style: italic;
+    text-align: center;
+    color: #aaa; /* Lighter grey */
+    padding: 15px 0;
+    width: 90%; /* Match indentation */
+    margin: 15px auto 0 auto;
+    padding-top: 15px;
+    border-top: 1px solid #5c4d3d;
+}
+
+/* Reserve Button Styling */
+.reserveBtn {
+  display: block;
+  width: fit-content; /* Size to content */
+  margin: 30px auto 20px auto; /* Center button */
+  background: white; /* White button like image */
+  color: black; /* Black text */
+  padding: 12px 30px; /* Padding */
+  border: none;
+  border-radius: 8px; /* Match card radius */
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: bold;
+  transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.reserveBtn:hover:not(:disabled) {
+  background: #f0f0f0; /* Slightly grey hover */
+  transform: scale(1.03);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+
+.reserveBtn:disabled {
+  background-color: #777; /* Darker grey when disabled */
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+  box-shadow: none;
+}
+
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px 10px; /* Less horizontal padding on container */
+        padding-top: 70px; /* Adjust mobile navbar */
+    }
+    .title {
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+    }
+    .classes {
+        max-width: none; /* Allow date list to use available width */
+        gap: 12px;
+        padding-left: 5px; /* Add slight padding if needed */
+        padding-right: 5px;
+    }
+    .classCard {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+        width: 100%; /* Ensure cards take full width */
+    }
+    .classList {
+        width: 95%; /* Keep slight indent relative to parent */
+        gap: 8px;
+        margin-left: auto; /* Re-center */
+        margin-right: auto;
+    }
+    .reserveBtn {
+        width: 90%; /* Make button wider */
+        padding: 10px 20px;
+        font-size: 1rem;
+    }
+}
+
+/* --- Styles for loading/error/success text --- */
+/* Use paragraphs within the main container */
+.loadingText, .errorText, .successText {
+    padding: 10px;
+    border-radius: 5px;
+    margin: 20px auto;
+    max-width: 500px;
     text-align: center;
     font-weight: bold;
-    position: relative; /* For checkmark positioning if needed */
-   
-  }
-  
-  .classCard:hover {
-    background-color: #555;
-    border-color: #777;
-  }
-  
-  .classCard.selected { /* Style for selected date card AND selected class item */
-    background-color: #E0A900;
-    color: #333;
-    border-color: #FFDA72;
-  }
-  
-  .classList {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid #555;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    /* Ensure it appears below the clicked date card */
-    /* This might need grid adjustments if using grid for main layout */
-    grid-column: 1 / -1; /* Make it span all columns if parent is grid */
-  }
-  
-  .noClasses {
-      font-style: italic;
-      text-align: center;
-      color: #aaa;
-      padding: 10px;
-  }
-  
-  .reserveBtn {
-    display: block;
-    width: fit-content;
-    margin: 30px auto 0 auto; /* Center button */
-    background: #E0A900;
-    color: #3B2E20;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    font-weight: bold;
-    transition: background-color 0.3s, transform 0.2s;
-    text-transform: uppercase;
-  }
-  
-  .reserveBtn:hover:not(:disabled) {
-    background: #ffda72;
-    transform: scale(1.03);
-  }
-  
-  .reserveBtn:disabled {
-    background-color: #555;
-    cursor: not-allowed;
-    opacity: 0.7;
-    transform: none;
-  }
-  
-  /* Responsive */
-  @media (max-width: 768px) {
-      .container {
-          padding: 15px 10px;
-          padding-top: 70px; /* Mobile navbar */
-      }
-      .classes {
-          grid-template-columns: 1fr; /* Stack date cards */
-      }
-       .reserveBtn {
-          width: 80%;
-          padding: 10px 20px;
-          font-size: 1rem;
-       }
-  }
+    width: 90%; /* Match general width */
+    box-sizing: border-box;
+    color: white; /* Default */
+}
+.loadingText { font-style: italic; color: #ccc; }
+.errorText { background-color: rgba(217, 83, 79, 0.1); color: #d9534f; border: 1px solid #d9534f; }
+.successText { background-color: rgba(76, 175, 80, 0.1); color: #4CAF50; border: 1px solid #4CAF50; }

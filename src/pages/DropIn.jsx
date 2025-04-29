@@ -118,21 +118,47 @@ const DropIn = () => {
   const handleReserve = async () => {
     setReservationError(null);
     setSuccessMessage(null);
-    if (isAuthLoading) return;
+    if (isAuthLoading) { console.warn("Reserve clicked while auth loading"); return; } // Added check
     if (!user || !user.id) { setReservationError("You must be logged in."); return; }
     const hasSelection = Object.keys(selectedClasses).length > 0;
     if (!hasSelection) { setReservationError("Please select a class."); return; }
 
     const userIdToSend = user.id;
     setIsReserving(true);
+
+    // --- ADD THIS LOG ---
+    const token = localStorage.getItem("token");
+    console.log(`[DropIn Reserve] Token from localStorage: `, token);
+    // --- END LOG ---
+
+    // Check if token exists *before* fetching
+    if (!token) {
+        console.error("[DropIn Reserve] No token found before fetch!");
+        setReservationError("Authentication error. Please log in again.");
+        setIsReserving(false);
+        // Optionally navigate('/login');
+        return;
+    }
+    // --- End Check ---
+
     console.log("Sending reservation data:", { reservations: selectedClasses, userId: userIdToSend });
     try {
       const res = await fetch("http://localhost:5001/api/classes/reserve", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            // Ensure the Authorization header is correctly formatted
+            "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ reservations: selectedClasses, userId: userIdToSend }),
       });
-      const result = await res.json(); // Always try to parse JSON
+
+      // Check status code BEFORE trying to parse JSON if it's 401
+      if (res.status === 401) {
+          throw new Error("Not authorized (401). Please log in again.");
+      }
+
+      const result = await res.json(); // Try parsing JSON
       if (!res.ok) {
          // Use specific error message from backend if available
          throw new Error(result.message || result.error || `Reservation failed: ${res.status}`);
@@ -140,12 +166,18 @@ const DropIn = () => {
       console.log("✅ Reservations successful:", result);
       setSuccessMessage(result.message || "Class(es) reserved successfully!");
       setSelectedClasses({});
-      setSelectedDate(null); // Collapse expanded date
+      setSelectedDate(null);
       setAvailableClasses([]);
-      // Maybe redirect or show success longer?
     } catch (error) {
       console.error("❌ Reservation error:", error);
-      setReservationError(error.message || "An unknown error occurred.");
+      // Set specific error based on message content if possible
+      if (error.message.includes("401")) {
+          setReservationError("Your session may have expired. Please log in again.");
+          // Optionally call logout() here?
+          // logout();
+      } else {
+          setReservationError(error.message || "An unknown error occurred during reservation.");
+      }
     } finally {
       setIsReserving(false);
     }
