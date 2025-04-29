@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Import Link for registration
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import styles from '../styles/loginpage.module.css'; // We'll create this CSS file
+import styles from '../styles/loginpage.module.css'; // Ensure CSS path is correct
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -9,19 +9,21 @@ const LoginPage = () => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const { login, user, isAuthLoading } = useAuth(); // Get login function and user state
+    // Get context functions and state
+    const { login, user, isAuthLoading } = useAuth();
     const navigate = useNavigate();
 
-    // Redirect if user is already logged in
+    // Redirect if already logged in
     useEffect(() => {
         if (!isAuthLoading && user) {
-            navigate('/dashboard'); // Redirect to dashboard if already logged in
+            console.log("LoginPage: User already logged in, redirecting to dashboard.");
+            navigate('/dashboard', { replace: true });
         }
     }, [user, isAuthLoading, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(''); // Clear previous errors
+        setError('');
         setLoading(true);
 
         if (!email || !password) {
@@ -31,44 +33,50 @@ const LoginPage = () => {
         }
 
         try {
-            // The login function in AuthContext handles the API call & state update
-            await login(email, password);
-            // Navigation should ideally happen based on user state change,
-            // but navigating here after successful promise resolution is common.
-            // The useEffect above handles redirection if already logged in on load.
-            // If login succeeds here, the user state will update triggering potential redirects
-            // in App.jsx or the useEffect above on next render. Let's navigate explicitly:
-            navigate('/dashboard'); // Navigate after successful login call
-            const data = await res.json(); // Get backend response data
+            // --- Step 1: Call Backend API ---
+            console.log(`LoginPage: Attempting login for ${email}`);
+            const res = await fetch("http://localhost:5001/api/auth/login", {
+                 method: "POST",
+                 headers: { "Content-Type": "application/json" },
+                 body: JSON.stringify({ email, password }), // Send email and password
+            });
 
+            const data = await res.json(); // Get the response body
+
+            // --- Step 2: Check API Response ---
             if (!res.ok) {
-                throw new Error(data.error || data.message || 'Login failed');
+                // Use error from backend response if available
+                throw new Error(data.error || data.message || `Login failed (${res.status})`);
             }
 
-            // *** CHECK THIS PART ***
-            // Ensure 'data.token' and 'data.role' exist and are correct
-            console.log("Login successful, response data:", data);
+            // --- Step 3: Extract Token and Role ---
+            console.log("LoginPage: Backend login successful, response data:", data);
             if (data.token && data.role) {
-                await login(data.token, data.role); // Pass TOKEN and ROLE to context login
-                navigate('/dashboard');
+                // --- Step 4: Call Context Login Function ---
+                // Pass the received token and role to the context
+                await login(data.token, data.role);
+
+                // --- Step 5: Navigate (Optional - ProtectedRoute often handles this) ---
+                // You can navigate here, or let the state update trigger ProtectedRoute
+                console.log("LoginPage: Login successful, navigating to dashboard.");
+                navigate('/dashboard', { replace: true });
+
             } else {
-                // Handle case where backend didn't send token/role properly
-                setError("Login succeeded but couldn't retrieve session data.");
-                setLoading(false);
+                // Backend didn't return expected data
+                throw new Error("Login succeeded but session data is missing from response.");
             }
+
         } catch (err) {
-            // If the login function in context throws specific errors or returns failure info
-            console.error("Login Page Error:", err);
-            // Use a generic message unless the context provides a specific one
-            setError(err.message || 'Login failed. Please check your credentials.');
+            // Catch errors from fetch or context login
+            console.error("LoginPage Error:", err);
+            setError(err.message || 'Login failed. Please check credentials.');
         } finally {
-            setLoading(false);
+            setLoading(false); // Ensure loading is always turned off
         }
     };
 
-    // Prevent rendering form if auth is still loading initially
+    // --- Render Logic ---
     if (isAuthLoading) {
-        // You might want a more styled loading indicator matching the theme
         return <div className={styles.container}><p>Loading...</p></div>;
     }
 
@@ -86,6 +94,7 @@ const LoginPage = () => {
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             disabled={loading}
+                            autoComplete="email"
                         />
                     </div>
                     <div className={styles.inputGroup}>
@@ -97,6 +106,7 @@ const LoginPage = () => {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             disabled={loading}
+                            autoComplete="current-password"
                         />
                     </div>
 
