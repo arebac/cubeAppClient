@@ -1,0 +1,54 @@
+/* src/styles/modal.module.css */
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8); /* Darker overlay */
+  z-index: 1050;
+  display: flex;
+  /* --- MODIFIED: Center content --- */
+  justify-content: center;
+  align-items: center;
+  /* --- END MODIFIED --- */
+  padding: 20px; /* Add padding so modal doesn't touch edges */
+  box-sizing: border-box;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+
+.modalContent {
+  background-color: #1c1c1c; /* Dark background matching VIP card */
+  color: white;
+  /* --- MODIFIED: Sizing and Position --- */
+  width: 90%; /* Relative width */
+  max-width: 400px; /* Max width for the modal */
+  max-height: 80vh; /* Max height relative to viewport */
+  overflow-y: auto; /* Allow scrolling inside if content overflows */
+  position: relative; /* Keep for potential absolute elements inside */
+  /* --- END MODIFIED --- */
+  border: 2px solid #E0A900; /* Yellow border */
+  border-radius: 10px; /* Rounded corners */
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  /* Animation (Optional - Scale/Fade In) */
+  animation: scaleIn 0.3s ease-out;
+  display: flex; /* Keep flex */
+  flex-direction: column; /* Keep column */
+  padding: 0; /* Remove padding - applied to inner container */
+}
+
+/* Optional scale-in animation */
+@keyframes scaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Removed slideInModal animation */

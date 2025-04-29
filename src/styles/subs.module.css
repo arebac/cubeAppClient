@@ -1,0 +1,221 @@
+/* src/styles/subs.module.css */
+
+/* --- Base Container --- */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    background: black;
+    color: white;
+    padding: 20px;
+    padding-top: 85px; /* Space for fixed navbar (adjust value) */
+    box-sizing: border-box;
+  }
+  
+  /* --- Page Title --- */
+  .pageTitle {
+    font-size: 2.2rem;
+    color: #E0A900; /* Theme yellow */
+    text-align: center;
+    margin-bottom: 40px;
+    font-weight: bold;
+    /* Optional: Add text shadow for depth */
+    /* text-shadow: 1px 1px 2px rgba(0,0,0,0.5); */
+  }
+  
+  /* --- Container for Plan Cards --- */
+  .plansContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+    width: 100%;
+    max-width: 500px;
+  }
+  
+  /* --- Base Plan Card Style --- */
+  .planCard {
+    background:#E0A900; /* Theme yellow */
+    color: #3B2E20; /* Dark text */
+    padding: 25px 30px; /* Generous padding */
+    border-radius: 12px; /* Rounded corners */
+    width: 100%;
+    text-align: center;
+    border: 3px solid #FFDA72; /* Matching lighter border */
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+    position: relative; /* For selected indicator positioning */
+  }
+  
+  .planCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+  }
+  
+  /* Style for the featured card (VIP in example - dark background) */
+  .featured {
+      background: #1c1c1c; /* Dark background */
+      color: #E0A900; /* Yellow text */
+      border-color: #E0A900; /* Yellow border */
+  }
+  /* Adjust text colors within featured card */
+  .featured h2 {
+      color: #E0A900;
+  }
+  .featured .price {
+      color: #f0f0f0; /* Lighter text for price */
+  }
+  .featured .featuresList li {
+      color: #ddd; /* Lighter text for features */
+  }
+  .featured .checkmark {
+      color: #34c759; /* Slightly different green? Optional */
+  }
+  
+  /* Style for the SELECTED card */
+  .selected {
+    border-color: white; /* White border for selection */
+    transform: scale(1.02); /* Slightly larger when selected */
+    box-shadow: 0px 6px 20px rgba(255, 255, 255, 0.25);
+  }
+  /* Specific style if featured card is selected */
+  .featured.selected {
+      border-color: white;
+      /* background-color: #2a2a2a; /* Optional slightly lighter dark */
+  }
+  
+  /* Disable interaction visually after success */
+  .disabledCard {
+      cursor: default;
+      opacity: 0.7;
+  }
+  .disabledCard:hover {
+      transform: none;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Plan Card Content */
+  .planCard h2 { /* Plan Name */
+    font-size: 1.8rem;
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+  
+  .price { /* Price Text */
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 18px;
+    color: #5c4d3d; /* Default price color (darker) */
+  }
+  
+  .featuresList { /* UL for features */
+    list-style: none;
+    padding: 0;
+    margin: 0 auto; /* Center list block */
+    text-align: left;
+    display: inline-block; /* Allow text-align left within centered block */
+  }
+  
+  .featuresList li { /* Individual feature LI */
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+  }
+  
+  .checkmark {
+      color: #28a745; /* Green checkmark */
+      margin-right: 10px;
+      font-size: 1.1em;
+      flex-shrink: 0; /* Prevent checkmark from shrinking */
+  }
+  
+  /* Optional "Selected" text indicator */
+  .selectedIndicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #28a745;
+      color: white;
+      padding: 3px 8px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  
+  
+  /* --- Checkout Section --- */
+  .checkoutSection {
+      margin-top: 40px;
+      padding: 25px;
+      background-color: rgba(255, 255, 255, 0.05); /* Subtle background */
+      border-radius: 8px;
+      width: 100%;
+      max-width: 500px; /* Match plans container */
+      text-align: center;
+      border: 1px solid #444;
+  }
+  .checkoutSection h3 {
+      color: #E0A900;
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 1.4rem;
+  }
+  
+  /* Container for PayPal button */
+  .paypalButtonContainer {
+     /* Add styles here if needed to constrain/center the button */
+     max-width: 350px; /* Example max width */
+     margin: 0 auto; /* Center the container */
+  }
+  
+  /* --- Status/Error Text --- */
+  .successText, .errorText {
+      padding: 10px;
+      border-radius: 5px;
+      margin: 0 auto 25px auto; /* Center and space below */
+      max-width: 500px;
+      text-align: center;
+      font-weight: bold;
+      width: 100%;
+      box-sizing: border-box;
+  }
+  .successText {
+      background-color: rgba(76, 175, 80, 0.2);
+      color: #4CAF50;
+      border: 1px solid #4CAF50;
+  }
+  .errorText {
+      background-color: rgba(217, 83, 79, 0.2);
+      color: #d9534f;
+      border: 1px solid #d9534f;
+  }
+  
+  
+  /* --- Responsive --- */
+  @media (max-width: 768px) {
+      .container {
+          padding-top: 70px; /* Adjust mobile navbar */
+      }
+      .pageTitle {
+          font-size: 1.8rem;
+          margin-bottom: 30px;
+      }
+      .plansContainer {
+          gap: 20px;
+      }
+      .planCard {
+          padding: 20px;
+      }
+      .planCard h2 { font-size: 1.5rem; }
+      .price { font-size: 1.1rem; }
+      .featuresList li { font-size: 0.9rem; }
+  
+      .checkoutSection { max-width: 100%; padding: 20px; }
+      .checkoutSection h3 { font-size: 1.2rem; }
+  }

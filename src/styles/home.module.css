@@ -1,0 +1,86 @@
+/* src/styles/home.module.css */
+
+.homeContainer {
+    min-height: 100vh; /* Full viewport height */
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Center quote overlay vertically and horizontally */
+    padding: 20px; /* Add some padding */
+    box-sizing: border-box;
+  
+    /* --- Background Image --- */
+    /* Replace with the actual path to your background image */
+    background-image: url('/path/to/your/background-image.jpg'); /* ADJUST PATH */
+    background-size: cover; /* Cover the entire container */
+    background-position: center center; /* Center the image */
+    background-repeat: no-repeat;
+    background-color: #111; /* Fallback background color */
+    position: relative; /* Needed for overlay positioning if using absolute */
+  }
+  
+  /* Optional: Add a semi-transparent overlay for text readability */
+  .homeContainer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Adjust darkness (0.5 = 50% black) */
+    z-index: 1; /* Place overlay below text */
+  }
+  
+  
+  .quoteOverlay {
+    position: relative; /* Position relative to container or viewport */
+    z-index: 2; /* Ensure text is above the dark overlay */
+    text-align: center;
+    max-width: 700px; /* Limit width of quote text */
+    padding: 30px;
+    background-color: rgba(0, 0, 0, 0.1); /* Very subtle background for overlay itself */
+    border-radius: 10px;
+  }
+  
+  .quoteText {
+    font-size: 2rem; /* Adjust size as needed */
+    font-weight: 500; /* Medium weight */
+    color: #ffffff; /* White text */
+    line-height: 1.4;
+    margin-bottom: 15px;
+    font-style: italic; /* Often quotes are italicized */
+  }
+  
+  .quoteAuthor {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #E0A900; /* Use theme accent color */
+    margin-top: 10px; /* Space below quote text */
+    display: block; /* Ensure it's on its own line */
+  }
+  
+  .errorText {
+      color: #ff8a8a; /* Error color */
+      font-style: normal;
+  }
+  
+  /* Loading text style */
+  .loading {
+      color: #ccc;
+      font-size: 1.5rem;
+      font-style: italic;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .quoteOverlay {
+        padding: 20px;
+        max-width: 90%;
+    }
+    .quoteText {
+      font-size: 1.5rem; /* Smaller text on mobile */
+    }
+    .quoteAuthor {
+      font-size: 1rem; /* Smaller author */
+    }
+  }

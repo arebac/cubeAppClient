@@ -1,0 +1,176 @@
+/* src/styles/register.module.css */
+
+/* 🔥 Fullscreen Centered Container */
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: black; /* Match dashboard background */
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  
+  /* 🔥 Registration Card Styling */
+  .registerCard { /* Changed class name */
+    background:#E0A900; /* Match theme card color */
+    padding: 30px 40px;
+    border-radius: 12px;
+    max-width: 500px; /* Slightly wider for more fields */
+    width: 100%;
+    text-align: center;
+    box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 2px solid #FFDA72; /* Match theme border */
+    margin-top: 15%;
+
+  }
+  
+  .registerCard h1 {
+    font-size: 2rem;
+    color: white;
+    margin-top: 0;
+    margin-bottom: 25px;
+  }
+  
+  /* 🔥 Form Input Styling */
+  .inputGroup {
+    margin-bottom: 15px; /* Slightly less margin */
+    text-align: left;
+  }
+  
+  .inputGroup label {
+    display: block;
+    margin-bottom: 6px; /* Less margin */
+    font-weight: bold;
+    font-size: 0.9rem; /* Slightly smaller label */
+    color: white;
+  }
+  
+  .inputGroup input,
+  .inputGroup select { /* Style select dropdown too */
+    width: 100%;
+    padding: 10px 12px; /* Adjusted padding */
+    border: 1px solid #FFDA72;
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: rgba(60, 46, 32, 0.8);
+    color: white;
+    box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  /* Add specific style for select arrow if needed */
+  .inputGroup select {
+      appearance: none; /* Remove default arrow */
+      background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); /* Simple white arrow */
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 10px auto;
+      padding-right: 30px; /* Make space for arrow */
+  }
+  
+  .inputGroup input:focus,
+  .inputGroup select:focus {
+    outline: none;
+    border-color: white;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  }
+  
+  /* 🔥 Button Styling (Match Login/Dashboard) */
+  .btn {
+    background: #3B2E20;
+    color: white;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background-color 0.3s, transform 0.2s;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: 100%;
+    margin-top: 15px; /* Adjusted margin */
+  }
+  
+  .btn:hover:not(:disabled) {
+    background: #5c4d3d;
+    transform: scale(1.02);
+  }
+  
+  .btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+  }
+  
+  /* 🔥 Error/Success Message Styling */
+  .errorText {
+    color: #ff4d4d;
+    text-align: center;
+    margin-top: 10px; /* Less margin */
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+  .successText {
+      color: #4CAF50; /* Green for success */
+      text-align: center;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-size: 0.9rem;
+  }
+  
+  
+  /* 🔥 Link to Login Page Styling */
+  .switchPageLink {
+      margin-top: 20px; /* Less margin */
+      font-size: 0.9rem;
+      text-align: center;
+      color: #eee;
+  }
+  
+  .switchPageLink a {
+      color: #FFDA72;
+      font-weight: bold;
+      text-decoration: none;
+      transition: color 0.3s;
+  }
+  
+  .switchPageLink a:hover {
+      color: white;
+      text-decoration: underline;
+  }
+  
+  
+  /* 🔥 Responsive for Mobile */
+  @media (max-width: 768px) {
+    .container {
+      padding: 15px;
+      justify-content: flex-start; /* Align card closer to top */
+      padding-top: 60px;
+    }
+  
+    .registerCard {
+      width: 95%;
+      max-width: none;
+      padding: 20px 25px;
+    }
+  
+    .registerCard h1 {
+      font-size: 1.8rem;
+    }
+  
+    .inputGroup input,
+    .inputGroup select {
+      padding: 10px 12px;
+    }
+  
+    .btn {
+        font-size: 1rem;
+        padding: 10px 12px;
+    }
+  }

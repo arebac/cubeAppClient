@@ -1,0 +1,223 @@
+/* src/styles/navbar.module.css */
+
+/* --- Base Navbar Styles --- */
+.navbar {
+  display: flex;
+  /* Default: Space between logo and links/hamburger */
+  justify-content: space-between;
+  align-items: center;
+  padding: 0px 20px;
+  background-color: #E0A900;
+  color: #3B2E20;
+  height: 60px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+.logo img {
+  height: 45px;
+  width: auto;
+  display: block;
+}
+
+/* --- Desktop Link Styles (Hidden on Mobile) --- */
+.navLinksDesktop {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Base link/button style */
+.navLink, .navLinkModal, .logoutButton {
+  color: #3B2E20;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.95rem;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.navLink:hover, .navLinkModal:hover, .logoutButton:hover {
+  background-color: rgba(60, 46, 32, 0.1);
+}
+.activeLink {
+  background-color: #3B2E20 !important;
+  color: #E0A900 !important;
+}
+.logoutButton { color: #b33c38; }
+.logoutButton:hover { background-color: rgba(179, 60, 56, 0.1); }
+.navIconDesktop { display: none; /* Hide icons on desktop by default */ }
+
+/* --- Hamburger Menu Button (Mobile - Centered) --- */
+.hamburger {
+  display: none; /* Hidden on desktop */
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px; /* Add some padding for touch */
+  line-height: 0; /* Prevent extra space */
+}
+.hamburgerIcon { /* The logo used as icon */
+    height: 40px; /* Control centered logo size */
+    width: auto;
+    display: block;
+}
+
+/* --- Styles for CONTENT INSIDE the Modal --- */
+/* These are still defined here as Navbar controls the content */
+.modalMenuContainer {
+  display: flex;
+  flex-direction: column;
+  /* No height: 100% needed, let content size */
+  padding: 15px;
+  box-sizing: border-box;
+  position: relative; /* For close button positioning */
+  background-color: #000000; /* Dark background */
+}
+
+.modalMenuContainer h2 { /* MENU Title */
+  text-align: center;
+  color: #E0A900;
+  margin: 10px 0 20px 0;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #555;
+  font-size: 1.4rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.modalCloseButton { /* X Button */
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 5px;
+  line-height: 1;
+  transition: color 0.2s;
+  z-index: 10;
+}
+.modalCloseButton:hover {
+  color: white;
+}
+
+/* Container for links inside the modal */
+.navLinksModal {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; /* Links take full width */
+  gap: 5px;
+  margin-top: 10px;
+}
+
+/* Individual link style inside the modal - UPDATED */
+.navLinkModal {
+  font-size: 1.1rem;
+  padding: 12px 10px;
+  width: 100%;
+  /* text-align: left; */ /* REMOVE or change to center if needed */
+  color: #eee; /* Default text color */
+  border-radius: 6px; /* More rounded corners */
+  display: flex;
+  align-items: center;
+  /* --- ADDED: Center icon and text horizontally --- */
+  justify-content: center;
+  /* --- END ADDED --- */
+  gap: 12px;
+  box-sizing: border-box;
+  transition: background-color 0.2s, color 0.2s, border 0.2s; /* Added border transition */
+  border: 1px solid transparent; /* Add transparent border for smooth hover/active */
+}
+
+/* Hover state for modal links */
+.navLinkModal:hover:not(.activeLink) { /* Don't apply hover bg if already active */
+   background-color: #333; /* Darker hover */
+   color: #E0A900; /* Yellow text hover */
+   border-color: #444; /* Subtle border on hover */
+}
+
+/* Active link style for modal - UPDATED */
+.navLinkModal.activeLink {
+    background-color: #E0A900 !important; /* Theme yellow background */
+    color: #3B2E20 !important; /* Dark text */
+    font-weight: bold;
+    border-color: #FFDA72 !important; /* Lighter border for active */
+}
+
+/* Icon styling within modal links */
+.navIconModal {
+    font-size: 1.1em;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    /* Ensure icon color matches text color */
+    /* color: inherit; */ /* Usually inherits fine */
+}
+/* Adjust icon color for active link */
+.navLinkModal.activeLink .navIconModal {
+    color: #3B2E20 !important; /* Dark icon on active link */
+}
+
+
+/* Logout button style specifically within the modal - UPDATED */
+.navLinksModal .logoutButton {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #555;
+    width: 100%;
+    /* text-align: left; */ /* REMOVE or change */
+    color: #ff8a8a;
+    font-size: 1.1rem;
+    background: none;
+    padding: 12px 10px;
+    /* --- ADDED: Center icon and text --- */
+    justify-content: center;
+    /* --- END ADDED --- */
+    border-radius: 6px; /* Match other links */
+    border: 1px solid transparent; /* Add for consistency */
+
+}
+.navLinksModal .logoutButton:hover {
+    background-color: rgba(255, 0, 0, 0.1);
+    color: #ff4d4d;
+    border-color: rgba(255, 0, 0, 0.2); /* Subtle red border */
+}
+/* Make logout icon red too */
+.navLinksModal .logoutButton .navIconModal {
+    color: #ff8a8a; /* Match text */
+}
+.navLinksModal .logoutButton:hover .navIconModal {
+    color: #ff4d4d; /* Match hover text */
+}
+
+
+/* 🔥 Responsive: Show/Hide Elements & Center Trigger */
+@media (max-width: 767px) {
+  .navbar {
+      justify-content: center; /* Center the hamburger */
+  }
+  .logo {
+      display: none; /* Hide logo on mobile */
+  }
+  .navLinksDesktop {
+    display: none; /* Hide desktop links */
+  }
+  .hamburger {
+    display: block; /* Show hamburger button */
+  }
+}
