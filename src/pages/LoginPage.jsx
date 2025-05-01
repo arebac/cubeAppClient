@@ -117,7 +117,7 @@ const LoginPage = () => {
                     </button>
                 </form>
                 <p className={styles.switchPageLink}>
-                    Don't have an account? <Link to="/register">Register here</Link>
+                    Don't have an account? <Link to="/register">Sign Up</Link>
                 </p>
             </div>
         </div>

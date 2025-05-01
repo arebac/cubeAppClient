@@ -110,7 +110,7 @@ const RegisterPage = () => {
         <div className={styles.container}>
             {/* Use registerCard style, similar to loginCard */}
             <div className={styles.registerCard}>
-                <h1>Register</h1>
+                <h1>Sign Up</h1>
                 <form onSubmit={handleSubmit}>
                     {/* Name Input */}
                     <div className={styles.inputGroup}>

@@ -23,7 +23,7 @@
     box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.15); /* Slightly more pronounced shadow */
     color: white; /* Default text color inside card */
     border: 2px solid #FFDA72; /* Match dashboard border */
-    margin-top: 15%;
+
   }
   
   .loginCard h1 {
@@ -131,6 +131,10 @@
       padding: 15px; /* Less padding */
       justify-content: flex-start; /* Align card closer to top on mobile */
       padding-top: 60px; /* Adjust for mobile navbar */
+      padding-left: 50px;  /* Or 15px, 25px - adjust to your preference */
+      padding-right: 50px; /* Or 15px, 25px - adjust to your preference */
+      /* Keep vertical padding if needed, or adjust */
+      padding-bottom: 20px; /* Example: ensure consistent bottom padding */ 
     }
   
     .loginCard {

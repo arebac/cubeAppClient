@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
-// Import Link for the login/register prompt
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // To check login status
-import styles from '../styles/subs.module.css'; // Make sure path is correct
-// --- STEP 1: Uncomment or add the import for your PayPal button ---
+import { useAuth } from '../context/AuthContext';
+import styles from '../styles/subs.module.css'; // Ensure path is correct
 import PayPalButton from '../components/PayPalButton'; // Ensure path is correct
 
 // --- Define Plan Data ---
-// IMPORTANT: Fetch this from your backend in a real app.
 const plansData = [
     { id: 'basic_monthly', name: "Basic", priceInCents: 999, displayPrice: "$9.99/month", features: ["1 Video/Week", "Access to Group Chat"] },
     { id: 'standard_monthly', name: "Standard", priceInCents: 1999, displayPrice: "$19.99/month", features: ["3 Videos/Week", "Priority Support"] },
@@ -22,11 +19,8 @@ const SubsPage = () => {
     const [paymentError, setPaymentError] = useState('');
     const [paymentSuccessData, setPaymentSuccessData] = useState(null);
 
-    // Get user and loading status from context
-    const { user, isAuthLoading } = useAuth();
+    const { user, isAuthLoading, fetchAndUpdateUser } = useAuth();
     const navigate = useNavigate();
-
-    // useEffect to check login status is NO LONGER needed here as page is public
 
     const handleSelectPlan = (planId) => {
         if (paymentStatus === 'success') return;
@@ -37,40 +31,61 @@ const SubsPage = () => {
         console.log("Selected Plan ID:", planId);
     };
 
-    const handlePaymentSuccess = (orderData) => {
-        console.log("Payment Success Callback!", orderData);
+    const handlePaymentSuccess = async (orderData) => {
+        console.log("Payment Success Callback received in SubsPage!", orderData);
         setPaymentStatus('success');
         setPaymentSuccessData(orderData);
         setPaymentError('');
-        setSelectedPlanId(null);
-        alert(`Subscription Successful! Order ID: ${orderData?.orderID}. Redirecting...`);
-        setTimeout(() => navigate('/dashboard'), 1500);
+
+        try {
+            if (typeof fetchAndUpdateUser === 'function') {
+                await fetchAndUpdateUser();
+                console.log("User context updated after subscription success.");
+            } else {
+                console.warn("fetchAndUpdateUser function not found in AuthContext.");
+            }
+        } catch (error) {
+            console.error("Error updating user context after payment:", error);
+        }
+
+        navigate('/subscription-success', {
+            replace: true,
+            state: {
+                planName: orderData?.subscription?.plan || orderData?.plan || plansData.find(p => p.id === selectedPlanId)?.name || 'Your Plan',
+                expiresAt: orderData?.subscription?.expires || orderData?.expires,
+                orderId: orderData?.orderID
+            }
+        });
     };
 
     const handlePaymentError = (errorMessage) => {
-        console.error("Payment Error Callback!", errorMessage);
+        console.error("Payment Error Callback received in SubsPage!", errorMessage);
         setPaymentStatus('error');
-        setPaymentError(errorMessage || "An unknown payment error occurred.");
+        const message = typeof errorMessage === 'string' ? errorMessage : "An unknown payment error occurred.";
+        setPaymentError(message);
     };
 
-    // Find selected plan details for display purposes
+    // --- ADDED: Handler for the new Cancel button ---
+    const handleCancelCheckout = () => {
+        console.log("User cancelled checkout selection.");
+        setSelectedPlanId(null); // De-select the plan
+        setPaymentStatus('');    // Reset payment status
+        setPaymentError('');     // Clear any errors
+    };
+    // --- END ADDED HANDLER ---
+
     const selectedPlanDetails = plansData.find(p => p.id === selectedPlanId);
 
-    // Don't render main content until auth status is known (prevents flicker)
     if (isAuthLoading) {
-        return <div className={styles.container}><p className={styles.loadingText}>Loading...</p></div>;
+        return <div style={{ textAlign: 'center', padding: '50px', color: 'white' }}>Loading...</div>;
     }
 
     return (
         <div className={styles.container}>
             <h1 className={styles.pageTitle}>Choose Your Subscription</h1>
 
-            {/* Display Global Payment Status Messages */}
-            {paymentStatus === 'success' && <p className={styles.successText}>Subscription Activated!</p>}
-            {/* Only show general error if NOT showing checkout section, otherwise show it there */}
             {paymentStatus === 'error' && !selectedPlanId && <p className={styles.errorText}>Payment Failed: {paymentError}</p>}
 
-            {/* Plan Cards Container */}
             <div className={styles.plansContainer}>
                 {plansData.map((plan) => (
                     <div
@@ -83,6 +98,14 @@ const SubsPage = () => {
                         `}
                         onClick={() => paymentStatus !== 'success' && handleSelectPlan(plan.id)}
                     >
+                        {selectedPlanId === plan.id && (
+                            <span className={styles.selectedIndicator}>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="18px" height="18px" style={{ marginRight: '4px', verticalAlign: 'middle' }}>
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.707-9.293a1 1 0 0 0-1.414-1.414L9 10.586 7.707 9.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4Z" clipRule="evenodd" />
+                                </svg>
+                                Selected
+                            </span>
+                         )}
                         <h2>{plan.name}</h2>
                         <p className={styles.price}>{plan.displayPrice}</p>
                         <ul className={styles.featuresList}>
@@ -92,7 +115,6 @@ const SubsPage = () => {
                                 </li>
                             ))}
                         </ul>
-                        {selectedPlanId === plan.id && <span className={styles.selectedIndicator}>Selected</span>}
                     </div>
                 ))}
             </div>
@@ -102,42 +124,57 @@ const SubsPage = () => {
                 <div className={styles.checkoutSection}>
                     <h3>Checkout for {selectedPlanDetails?.name}</h3>
 
-                    {/* --- STEP 2: Add Login Check Here --- */}
                     {user ? (
-                        // USER IS LOGGED IN: Show PayPal Button & payment errors
+                        // USER IS LOGGED IN
                         <>
-                            {paymentStatus === 'error' && <p className={styles.errorText} style={{marginBottom: '15px'}}>{paymentError}</p>}
+                            {paymentStatus === 'error' && <p className={styles.errorText} style={{ marginBottom: '15px' }}>{paymentError}</p>}
+
                             <div className={styles.paypalButtonContainer}>
                                 <PayPalButton
                                     planId={selectedPlanId}
                                     onPaymentSuccess={handlePaymentSuccess}
                                     onPaymentError={handlePaymentError}
+                                    // Optional: Pass cancel handler if needed by PayPalButton itself
+                                    // onPaymentCancel={() => console.log('PayPal modal closed')}
                                 />
                             </div>
+
+                            {/* --- ADDED CANCEL BUTTON --- */}
+                            <div className={styles.cancelButtonContainer}>
+                                <button
+                                    onClick={handleCancelCheckout}
+                                    className={`${styles.btn} ${styles.btnCancel}`} // Use btn class + specific cancel class
+                                >
+                                    Cancel / Change Plan
+                                </button>
+                            </div>
+                            {/* --- END ADDED CANCEL BUTTON --- */}
                         </>
                     ) : (
-                        // USER IS NOT LOGGED IN: Show Login/Register Prompt
+                        // USER IS NOT LOGGED IN
                         <div className={styles.loginPrompt}>
                             <p>Please log in or register to complete your subscription.</p>
-                            {/* Use Link component for navigation */}
-                            <Link
-                                to="/login"
-                                state={{ from: '/subs', selectedPlanId: selectedPlanId, message: "Please log in to subscribe." }}
-                                className={styles.loginButton}
-                            >
+                            <Link to="/login" state={{ from: '/subs', selectedPlanId: selectedPlanId, message: "Please log in to subscribe." }} className={styles.loginButton}>
                                 Login
                             </Link>
                             <Link to="/register" className={styles.registerButton}>
                                 Register
                             </Link>
+                            {/* --- ADDED CANCEL BUTTON (also for non-logged in users) --- */}
+                             <div className={styles.cancelButtonContainer} style={{marginTop: '15px'}}>
+                                <button
+                                    onClick={handleCancelCheckout}
+                                    className={`${styles.btn} ${styles.btnCancel}`}
+                                >
+                                    Cancel / Change Plan
+                                </button>
+                            </div>
+                            {/* --- END ADDED CANCEL BUTTON --- */}
                         </div>
                     )}
-                    {/* --- End Login Check --- */}
-
                 </div>
             )}
             {/* --- End Checkout Section --- */}
-
         </div>
     );
 };

@@ -1,0 +1,195 @@
+/* src/styles/SubscriptionSuccess.module.css */
+
+.loading {
+    text-align: center;
+    padding: 50px;
+    font-style: italic;
+    color: #ccc; /* Match subtle text color */
+  }
+  
+  /* 🔥 Base Container - Matches Dashboard's .container concept */
+  .successContainer {
+    display: flex;
+    flex-direction: column; /* Align card to top like dashboard */
+    align-items: center; /* Center card horizontally */
+    justify-content: flex-start; /* Start content near the top */
+    min-height: 100vh;
+    background: black; /* Match dashboard background */
+    color: white; /* Default text color */
+    padding: 20px; /* Match default padding */
+    padding-top: 80px; /* Match dashboard navbar spacing */
+    box-sizing: border-box;
+  }
+  
+  /* 🔥 The Main Card - Similar structure to dashboard's card faces */
+  .successCard {
+    background-color: #3b2e20; /* Use the darker accent from dashboard buttons/cards */
+    padding: 30px 35px; /* Generous padding */
+    border-radius: 12px; /* Match dashboard card radius */
+    text-align: center;
+    color: #ffffff; /* White text on dark background */
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4); /* Slightly stronger shadow */
+    border: 2px solid #5c4d3d; /* Border using button hover color */
+    max-width: 600px; /* Match dashboard card max-width */
+    width: 100%;
+    margin-top: 5%; /* Similar top margin to dashboard card */
+    margin-bottom: 20px; /* Consistent bottom margin */
+  }
+  
+  .icon {
+    margin-bottom: 20px;
+    color: #4CAF50; /* Keep green for success indication */
+    /* Optional: Make icon bigger if needed */
+    /* width: 70px; height: 70px; */
+  }
+  
+  .title {
+    font-size: 2rem; /* Slightly larger title */
+    color: #E0A900; /* Use the main theme yellow */
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-weight: bold;
+  }
+  
+  .message {
+    font-size: 1.1rem;
+    color: #e0e0e0; /* Lighter gray for main message */
+    margin-bottom: 25px;
+    line-height: 1.5;
+  }
+  
+  /* 🔥 Details Section - Subtle inset look */
+  .details {
+    background-color: rgba(0, 0, 0, 0.2); /* Darker, less contrasty inner background */
+    padding: 15px 20px;
+    border-radius: 8px; /* Slightly smaller radius for inset */
+    margin-bottom: 30px;
+    text-align: left;
+    border: 1px solid #5c4d3d; /* Use the border color */
+  }
+  
+  .details p {
+    margin: 10px 0;
+    font-size: 0.95rem; /* Match dashboard paragraph text */
+    color: #ccc; /* Subtle text color */
+    line-height: 1.4; /* Match dashboard */
+  }
+  
+  .details strong {
+    color: #ffffff; /* White for emphasis */
+    margin-right: 8px;
+    font-weight: bold;
+  }
+  
+  .reference {
+    font-size: 0.85rem !important; /* Small reference text */
+    color: #aaa !important;
+    margin-top: 15px !important;
+    word-break: break-all;
+  }
+  
+  /* 🔥 Actions Section - Matches dashboard's .actions */
+  .actions {
+    display: flex;
+    justify-content: space-around; /* Spread buttons like dashboard */
+    gap: 15px; /* Keep gap for wrapping */
+    margin-top: 25px; /* Consistent spacing */
+    padding-top: 15px; /* Add padding like dashboard */
+    border-top: 1px solid #5c4d3d; /* Separator line */
+    width: 100%;
+    box-sizing: border-box;
+    flex-wrap: wrap; /* Allow wrapping */
+  }
+  
+  /* 🔥 Button Styles - Inherit directly from dashboard's .btn */
+  .btn {
+    background: #3b2e20; /* Base button color */
+    color: white;
+    padding: 10px 15px; /* Match dashboard button padding */
+    border: none;
+    border-radius: 6px; /* Match dashboard button radius */
+    cursor: pointer;
+    font-size: 0.9rem; /* Match dashboard button font size */
+    transition: background-color 0.3s, transform 0.2s;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-decoration: none; /* For Link components */
+    display: inline-block;
+    flex-basis: 45%; /* Allow two buttons side-by-side */
+    max-width: 220px; /* Limit button width */
+  }
+  
+  .btn:hover:not(:disabled) {
+    background: #5c4d3d; /* Match dashboard button hover */
+    transform: scale(1.03); /* Match dashboard button hover transform */
+  }
+  
+  /* Variations for buttons if needed, otherwise they use base .btn */
+  .btnPrimary {
+    /* Option 1: Use Theme Yellow */
+    background-color: #E0A900;
+    color: #3B2E20; /* Dark text on yellow */
+    border: 1px solid #ffda72; /* Optional: lighter yellow border */
+  }
+  .btnPrimary:hover:not(:disabled) {
+     background-color: #ffda72; /* Lighter yellow hover */
+     color: #3B2E20;
+     transform: scale(1.03);
+  }
+  
+  .btnSecondary {
+     /* Keep the default .btn style or use a neutral grey */
+     background-color: #555;
+     color: white;
+  }
+  .btnSecondary:hover:not(:disabled) {
+     background-color: #777;
+     transform: scale(1.03);
+  }
+  
+  
+  /* 🔥 Responsive - Adjust based on dashboard's breakpoint */
+  @media (max-width: 768px) {
+    .successContainer {
+        padding: 15px 20px; /* Increase mobile horizontal padding */
+        padding-top: 70px; /* Match mobile navbar height */
+        padding-left: 50px;  /* Or 15px, 25px - adjust to your preference */
+        padding-right: 50px; /* Or 15px, 25px - adjust to your preference */
+        /* Keep vertical padding if needed, or adjust */
+        padding-bottom: 20px; /* Example: ensure consistent bottom padding */ 
+    }
+  
+    .successCard {
+      padding: 20px 25px;
+      margin-top: 10%;
+      max-width: none; /* Allow card to fill padded container */
+    }
+  
+    .title {
+      font-size: 1.7rem;
+    }
+    .message {
+      font-size: 1rem;
+    }
+    .details {
+      padding: 15px;
+    }
+     .details p {
+      font-size: 0.9rem; /* Match mobile paragraph */
+     }
+  
+    .actions {
+      justify-content: center; /* Center buttons when wrapped */
+      gap: 10px;
+      padding-top: 10px;
+      border-top: none; /* Remove top border on mobile if desired */
+    }
+  
+    .btn {
+      font-size: 0.85rem; /* Match mobile button font size */
+      padding: 8px 12px; /* Adjust padding */
+      flex-basis: 80%; /* Make buttons take more width when stacking */
+      max-width: none; /* Remove max-width */
+    }
+  }
