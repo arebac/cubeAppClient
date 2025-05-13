@@ -61,20 +61,38 @@
 .navIconDesktop { display: none; /* Hide icons on desktop by default */ }
 
 /* --- Hamburger Menu Button (Mobile - Centered) --- */
+/* --- Hamburger Menu Button (Mobile - Centered) --- */
 .hamburger {
-  display: none; /* Hidden on desktop */
+  /* display: none; /* Initially hidden, shown in media query */
   background: none;
   border: none;
   cursor: pointer;
-  padding: 5px; /* Add some padding for touch */
-  line-height: 0; /* Prevent extra space */
-}
-.hamburgerIcon { /* The logo used as icon */
-    height: 40px; /* Control centered logo size */
-    width: auto;
-    display: block;
+  padding: 5px;
+  line-height: 0;
+  /* --- MODIFIED: Use Flexbox to align image and arrow --- */
+  display: flex; /* Changed from 'block' or 'none' to 'flex' for mobile */
+  align-items: center; /* Vertically align items */
+  gap: 6px; /* Space between logo and arrow */
+  /* --- END MODIFICATION --- */
 }
 
+.hamburgerIcon { /* The logo used as icon */
+    height: 40px; /* Adjusted size slightly, modify as needed */
+    width: auto;
+    display: block; /* Good for img */
+    /* Animation styles */
+    border: 2px solid transparent;
+    border-radius: 4px;
+    animation: pulseBorder 2s infinite ease-in-out;
+}
+
+/* --- ADDED: Styles for the Chevron Arrow next to the logo --- */
+.hamburgerArrow {
+    color: #3B2E20; /* Match navbar text color */
+    font-size: 16px; /* Adjust size as needed */
+    /* No specific margin needed if using 'gap' on .hamburger */
+    transition: transform 0.3s ease-in-out; /* For potential open/close animation */
+}
 /* --- Styles for CONTENT INSIDE the Modal --- */
 /* These are still defined here as Navbar controls the content */
 .modalMenuContainer {
@@ -205,6 +223,18 @@
     color: #ff4d4d; /* Match hover text */
 }
 
+.hamburgerIcon {
+  /* ... your existing styles ... */
+  border: 2px solid transparent; /* Start transparent */
+  border-radius: 4px; /* Optional, if you want a border around the logo */
+  animation: pulseBorder 2s infinite ease-in-out;
+}
+
+@keyframes pulseBorder {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0); }
+}
+
 
 /* 🔥 Responsive: Show/Hide Elements & Center Trigger */
 @media (max-width: 767px) {
@@ -218,6 +248,6 @@
     display: none; /* Hide desktop links */
   }
   .hamburger {
-    display: block; /* Show hamburger button */
+    display: flex; /* Show hamburger button */
   }
 }

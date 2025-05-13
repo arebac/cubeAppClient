@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import Modal from "./Modal";
 import styles from "../components/navbar.module.css";
 // Import icons you want to use, e.g., from react-icons/fa or other libraries
-import { FaHome, FaCrown, FaUserCircle, FaUserPlus, FaThLarge, FaRunning, FaSignOutAlt, FaTimes } from "react-icons/fa";
+import { FaHome, FaCrown, FaUserCircle, FaUserPlus, FaThLarge, FaRunning, FaSignOutAlt, FaTimes,FaChevronDown} from "react-icons/fa";
 
 const Navbar = () => {
   const { user, logout, isAuthLoading } = useAuth();
@@ -93,7 +93,7 @@ const Navbar = () => {
            {/* Use your logo image as the button trigger */}
            <img src="public/image.png" alt="Menu" className={styles.hamburgerIcon} />
            {/* Optional: Keep the down arrow if desired */}
-           {/* <FaChevronDown className={styles.hamburgerArrow} /> */}
+           <FaChevronDown className={styles.hamburgerArrow} />
         </button>
       ) : (
         // --- Desktop View: Links ---
