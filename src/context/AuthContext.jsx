@@ -159,7 +159,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAuthLoading, // Expose the initial loading state
-    fetchAndUpdateUser // Expose the background refresh function
+    fetchAndUpdateUser, // Expose the background refresh function
+    setUser
   };
 
   return (
