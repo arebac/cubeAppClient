@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Ensure Link is imported
 import { useAuth } from '../context/AuthContext';
 import styles from '../styles/loginpage.module.css'; // Ensure CSS path is correct
 
@@ -10,6 +10,8 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
 
     // Get context functions and state
+    // IMPORTANT: The 'login' function in AuthContext now only expects 'token'.
+    // The role is derived from the token inside AuthContext.
     const { login, user, isAuthLoading } = useAuth();
     const navigate = useNavigate();
 
@@ -33,51 +35,43 @@ const LoginPage = () => {
         }
 
         try {
-            // --- Step 1: Call Backend API ---
             console.log(`LoginPage: Attempting login for ${email}`);
             const res = await fetch("http://localhost:5001/api/auth/login", {
                  method: "POST",
                  headers: { "Content-Type": "application/json" },
-                 body: JSON.stringify({ email, password }), // Send email and password
+                 body: JSON.stringify({ email, password }),
             });
 
-            const data = await res.json(); // Get the response body
+            const data = await res.json();
 
-            // --- Step 2: Check API Response ---
             if (!res.ok) {
-                // Use error from backend response if available
-                throw new Error(data.error || data.message || `Login failed (${res.status})`);
+                throw new Error(data.message || `Login failed (${res.status})`);
             }
 
-            // --- Step 3: Extract Token and Role ---
             console.log("LoginPage: Backend login successful, response data:", data);
-            if (data.token && data.role) {
-                // --- Step 4: Call Context Login Function ---
-                // Pass the received token and role to the context
-                await login(data.token, data.role);
+            if (data.token) { // Only check for 'token' now, as 'role' is handled by AuthContext
+                // --- FIX: Pass ONLY the token to the context login function ---
+                await login(data.token);
+                // --- END FIX ---
 
-                // --- Step 5: Navigate (Optional - ProtectedRoute often handles this) ---
-                // You can navigate here, or let the state update trigger ProtectedRoute
                 console.log("LoginPage: Login successful, navigating to dashboard.");
                 navigate('/dashboard', { replace: true });
 
             } else {
-                // Backend didn't return expected data
-                throw new Error("Login succeeded but session data is missing from response.");
+                throw new Error("Login succeeded but session token is missing from response.");
             }
 
         } catch (err) {
-            // Catch errors from fetch or context login
             console.error("LoginPage Error:", err);
             setError(err.message || 'Login failed. Please check credentials.');
         } finally {
-            setLoading(false); // Ensure loading is always turned off
+            setLoading(false);
         }
     };
 
     // --- Render Logic ---
     if (isAuthLoading) {
-        return <div className={styles.container}><p>Loading...</p></div>;
+        return <div className={styles.container}><p className={styles.loadingText}>Loading...</p></div>; // Use styles.loadingText if defined
     }
 
     return (
@@ -118,6 +112,10 @@ const LoginPage = () => {
                 </form>
                 <p className={styles.switchPageLink}>
                     Don't have an account? <Link to="/register">Sign Up</Link>
+                    <br /> {/* Add a line break for spacing */}
+                    {/* --- ADDED: Forgot Password Link --- */}
+                    <Link to="/forgot-password">Forgot Password?</Link>
+                    {/* --- END ADDED --- */}
                 </p>
             </div>
         </div>

@@ -1,0 +1,185 @@
+/* src/styles/auth.module.css */
+
+/* 🔥 Fullscreen Centered Container */
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: black;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* 🔥 Auth Card Styling (Login, Register, Forgot, Reset) */
+.authCard {
+    background: #E0A900; /* Theme yellow */
+    padding: 30px 40px;
+    border-radius: 12px;
+    max-width: 450px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0px 4px 15px rgba(255, 255, 255, 0.15);
+    color: white; /* Default text color inside card */
+    border: 2px solid #FFDA72; /* Lighter yellow border */
+}
+
+.authCard h1, .authCard h2 { /* Added h2 for sub-pages */
+    font-size: 2rem;
+    color: white;
+    margin-top: 0;
+    margin-bottom: 25px;
+}
+.authCard h2 { /* Specific styling for sub-page titles */
+    font-size: 1.8rem; /* Slightly smaller */
+}
+
+/* For instructional text */
+.instructions {
+  font-size: 0.9rem;
+  color: #ffffff; /* Darker text for readability on yellow */
+  margin-bottom: 20px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* 🔥 Form Input Styling */
+.inputGroup {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.inputGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: white;
+}
+
+.inputGroup input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #FFDA72;
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: rgba(60, 46, 32, 0.8);
+    color: white;
+    box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.inputGroup input:focus {
+    outline: none;
+    border-color: white;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+/* 🔥 Button Styling */
+.authButton { /* Renamed from .btn to avoid conflict if .btn is global */
+    background: #3B2E20;
+    color: white;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background-color 0.3s, transform 0.2s;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.authButton:hover:not(:disabled) {
+    background: #5c4d3d;
+    transform: scale(1.02);
+}
+
+.authButton:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+}
+
+/* 🔥 Message Styling (Error, Success, Info) */
+.message { /* Generic message container */
+  padding: 10px;
+  margin-top: 15px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+.errorMessage {
+    background-color: rgba(211, 47, 47, 0.15); /* Subtle red background */
+    color: #ff4d4d; /* Brighter red for errors */
+    border: 1px solid #ff4d4d;
+}
+.successMessage {
+    background-color: rgba(0, 0, 0, 0.15); /* Subtle green background */
+    color: #ffffff; /* Green text */
+    border: 1px solid #000000;
+}
+
+/* 🔥 Link Styling */
+.links {
+    margin-top: 25px;
+    font-size: 0.9rem;
+    text-align: center;
+    color: #3B2E20; /* Darker text for links on yellow bg */
+}
+
+.links a {
+    color: #FFDA72; /* Use accent color for link */
+    font-weight: bold;
+    text-decoration: none;
+    transition: color 0.3s;
+    margin: 0 5px; /* Add some spacing for multiple links */
+}
+
+.links a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+
+/* 🔥 Responsive for Mobile */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px; /* Less padding */
+      justify-content: flex-start; /* Align card closer to top on mobile */
+      padding-top: 60px; /* Adjust for mobile navbar */
+      padding-left: 50px;  /* Or 15px, 25px - adjust to your preference */
+      padding-right: 50px; /* Or 15px, 25px - adjust to your preference */
+      /* Keep vertical padding if needed, or adjust */
+      padding-bottom: 20px; /* Example: ensure consistent bottom padding */ 
+    }
+
+    .authCard {
+        width: 95%;
+        max-width: none;
+        padding: 20px 25px;
+        margin-top: 10%; /* Adjust top margin for mobile if needed */
+    }
+
+    .authCard h1, .authCard h2 {
+        font-size: 1.8rem;
+    }
+    .authCard h2 {
+        font-size: 1.6rem;
+    }
+
+    .inputGroup input {
+        padding: 10px 12px;
+    }
+
+    .authButton {
+        font-size: 1rem;
+        padding: 10px 12px;
+    }
+}

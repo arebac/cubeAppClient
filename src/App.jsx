@@ -17,6 +17,8 @@ import SubsPage from "./pages/SubsPage";
 import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage"; // Your Home page
 import SubscriptionSuccess from "./pages/SubscriptionSuccess"; // Your Subscription Success page
+import ForgotPasswordPage from "./components/ForgotPasswordPage"; // Your Forgot Password page
+import ResetPasswordPage from "./pages/ResetPasswordPage"; // Your Reset Password page
 
 // --- Protected Route Component ---
 // (This component handles the login check)
@@ -55,6 +57,11 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route
+            path="/reset-password/:token"
+            element={<ResetPasswordPage />}
+          />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/subs" element={<SubsPage />} />{" "}
           {/* Subs page is public */}

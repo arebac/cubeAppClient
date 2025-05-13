@@ -1,0 +1,48 @@
+/* src/index.css (or your main global CSS file) */
+
+body {
+    margin: 0;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif; /* Roboto is primary, then system fallbacks, then generic sans-serif */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #000; /* Assuming your global background is black */
+    color: #fff; /* Default text color */
+  
+    /* Set a default font weight for body text */
+    font-weight: 400; /* Regular */
+    font-size: 16px; /* Or your preferred base size */
+    line-height: 1.6; /* Good for readability */
+  }
+  
+  /* Ensure headings also use Roboto and you can set a default heading weight */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700; /* Bold for headings, or adjust as needed (e.g., 500 for Medium) */
+    margin-top: 0; /* Common reset for headings */
+  }
+  
+  /* Ensure form elements inherit the font for consistency */
+  button,
+  input,
+  textarea,
+  select {
+    font-family: 'Roboto', sans-serif;
+    font-size: inherit; /* Inherit font size from parent, or set explicitly */
+  }
+  
+  /* You can also define specific weights for classes or elements */
+  .text-light {
+    font-weight: 300;
+  }
+  
+  .text-medium {
+    font-weight: 500;
+  }
+  
+  /* Other global styles */
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
