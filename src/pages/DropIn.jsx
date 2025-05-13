@@ -1,249 +1,168 @@
 import React, { useEffect, useState } from "react";
 import styles from "../styles/dropin.module.css"; // Adjust path
-import { useNavigate } from "react-router-dom"; // Added for potential redirects
-import { useAuth } from "../context/AuthContext";
-import { format, parse, getDay, addDays, startOfWeek, formatISO } from 'date-fns'; // Added formatISO
+import { useNavigate, Link } from "react-router-dom"; // Added Link for login prompt
+import { useAuth } from "../context/AuthContext"; // Ensure this path is correct
+import { format, parse, getDay, addDays, startOfWeek, formatISO } from 'date-fns';
 
 const DropIn = () => {
-  const { user, isAuthLoading } = useAuth();
-  const navigate = useNavigate(); // Initialize navigate
+  const { user, isAuthLoading, fetchAndUpdateUser } = useAuth(); // Get refresh function
+  const navigate = useNavigate();
 
-  // State for date card selection and available classes
+  // State
   const [selectedDate, setSelectedDate] = useState(null);
   const [availableClasses, setAvailableClasses] = useState([]);
   const [isFetchingClasses, setIsFetchingClasses] = useState(false);
   const [fetchError, setFetchError] = useState(null);
-
-  // State for user's selections to be reserved
-  const [selectedClasses, setSelectedClasses] = useState({}); // { 'YYYY-MM-DD': [classId] }
-
-  // State for reservation API call
+  const [selectedClasses, setSelectedClasses] = useState({});
   const [isReserving, setIsReserving] = useState(false);
   const [reservationError, setReservationError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  console.log(`DropIn component rendered. isAuthLoading: ${isAuthLoading}, user:`, user);
+  console.log(`DropIn rendered. AuthLoading: ${isAuthLoading}, User:`, user ? user._id || user.id : 'null');
 
-  // Fetch Classes for a Specific Date
+  // Fetch Classes (Keep as is)
   const fetchClassesForDate = async (date) => {
-    const dateString = date.toString();
-    console.log("Fetching classes for date:", dateString);
-    setAvailableClasses([]);
-    setFetchError(null);
-    setIsFetchingClasses(true);
+    const isoDateString = formatISO(date, { representation: 'date' });
+    console.log("Fetching classes for date:", isoDateString);
+    setAvailableClasses([]); setFetchError(null); setIsFetchingClasses(true);
     try {
-      const res = await fetch(
-        `http://localhost:5001/api/classes?date=${encodeURIComponent(dateString)}`
-      );
-      if (!res.ok) {
-          let errorMsg = `HTTP error! status: ${res.status}`;
-          try { const errorData = await res.json(); errorMsg = errorData.message || errorData.error || errorMsg; } catch (parseError) {}
-          throw new Error(errorMsg);
-      }
+      const apiUrl = `http://localhost:5001/api/classes?date=${isoDateString}`;
+      const res = await fetch(apiUrl);
+      if (!res.ok) { let errorMsg = `HTTP error! status: ${res.status}`; try { const e = await res.json(); errorMsg = e.message||e.error||errorMsg; } catch(p){} throw new Error(errorMsg); }
       const data = await res.json();
       console.log("Fetched classes:", data);
       setAvailableClasses(data);
-    } catch (err) {
-      console.error("❌ Could not fetch classes:", err);
-      setFetchError(`Failed to load classes: ${err.message}`);
-      setAvailableClasses([]);
-    } finally {
-        setIsFetchingClasses(false);
-    }
+    } catch (err) { console.error("❌ Could not fetch classes:", err); setFetchError(`Failed to load classes: ${err.message}`); setAvailableClasses([]); }
+    finally { setIsFetchingClasses(false); }
   };
 
-   // Handle Selecting a Date Card
-   const handleSelectDate = (date) => {
-    setFetchError(null);
-    setSuccessMessage(null);
-    setReservationError(null); // Clear reservation errors too
-    const clickedDateString = date.toDateString();
-    const expandedDateString = selectedDate?.toDateString();
-
-    if (expandedDateString === clickedDateString) {
-      setSelectedDate(null);
-      setAvailableClasses([]);
-    } else {
-      setSelectedDate(date);
-      fetchClassesForDate(date);
-    }
+  // Select Date (Keep as is)
+  const handleSelectDate = (date) => {
+    setFetchError(null); setSuccessMessage(null); setReservationError(null);
+    const clickedDateISO = formatISO(date, { representation: 'date' });
+    const currentSelectedISO = selectedDate ? formatISO(selectedDate, { representation: 'date' }) : null;
+    if (currentSelectedISO === clickedDateISO) { setSelectedDate(null); setAvailableClasses([]); console.log("Date deselected"); }
+    else { setSelectedDate(date); fetchClassesForDate(date); console.log("Date selected:", clickedDateISO); }
   };
 
-   // Handle Toggling Class Selection for Reservation
-   const toggleClassSelection = (dateKey, classId) => {
-    setFetchError(null);
-    setSuccessMessage(null);
-    setReservationError(null);
+  // Toggle Class Selection (Keep as is)
+  const toggleClassSelection = (dateKey, classId) => {
+    setSuccessMessage(null); setReservationError(null);
     setSelectedClasses((prev) => {
-      const currentSelectionsForDate = prev[dateKey] || [];
-      const updatedSelectionsForDate = currentSelectionsForDate.includes(classId) ? [] : [classId];
-      const newState = { ...prev };
-      if (updatedSelectionsForDate.length > 0) { newState[dateKey] = updatedSelectionsForDate; }
-      else { delete newState[dateKey]; }
-      console.log("Selected classes state updated:", newState);
-      return newState;
+      const current = prev[dateKey] || []; const updated = current.includes(classId) ? [] : [classId];
+      const newState = { ...prev }; if (updated.length > 0) newState[dateKey] = updated; else delete newState[dateKey];
+      console.log("Selected classes state updated:", newState); return newState;
     });
   };
 
+  // --- Week Schedule Calculation (Keep as is) ---
+  const today = new Date(); const weekStartsOn = 1; const currentDay = getDay(today) === 0 ? 7 : getDay(today);
+  const weekSchedule = []; let startDay = startOfWeek(today, { weekStartsOn });
+  if (currentDay === 6 || currentDay === 7) { startDay = addDays(startDay, 7); console.log("Weekend. Showing next Mon-Fri."); for (let i=0; i<5; i++) { const d=addDays(startDay, i); weekSchedule.push({ id: formatISO(d, {representation: 'date'}), date: d });}}
+  else { console.log(`Weekday (Day ${currentDay}). Showing today-Fri.`); const fridayIndex = 5; for (let i=0; (currentDay+i)<=fridayIndex; i++) { const d=addDays(today, i); weekSchedule.push({ id: formatISO(d, {representation: 'date'}), date: d });}}
+  // --- End Week Schedule ---
 
-  // --- Week Schedule Calculation (Corrected Logic) ---
-  const today = new Date();
-  const currentDay = getDay(today); // 0=Sunday, 1=Monday, ..., 6=Saturday
-  const weekSchedule = [];
+  // --- MODIFIED Handle Reserve Button Click ---
+  const handleReserve = async (event) => { // <-- Accept event object
+    if (event) event.preventDefault(); // <-- PREVENT DEFAULT BROWSER ACTION (MOST IMPORTANT FIX)
 
-  if (currentDay === 0 || currentDay === 6) {
-    // Weekend: Show next Mon-Fri
-    const thisMonday = startOfWeek(today, { weekStartsOn: 1 });
-    const upcomingMonday = addDays(thisMonday, 7);
-    for (let i = 0; i < 5; i++) {
-      const date = addDays(upcomingMonday, i);
-      const id = formatISO(date, { representation: 'date' }); // Use ISO date as key
-      weekSchedule.push({ id, date });
-    }
-    console.log("Weekend detected. Displaying next Mon-Fri.");
-  } else {
-    // Weekday: Show today through Friday
-    const daysRemaining = 5 - currentDay; // Friday is day 5 (when week starts Mon=1)
-    for (let i = 0; i <= daysRemaining; i++) {
-      const date = addDays(today, i);
-      const id = formatISO(date, { representation: 'date' }); // Use ISO date as key
-      weekSchedule.push({ id, date });
-    }
-    console.log(`Weekday detected (Day ${currentDay}). Displaying today through Friday.`);
-  }
-  // --- End Week Schedule Calculation ---
+    setReservationError(null); setSuccessMessage(null); // Clear previous feedback
 
+    if (isAuthLoading) { console.warn("Reserve clicked while auth loading."); return; }
+    console.log("[DropIn Reserve] Checking user state:", user);
+    if (!user || !(user.id || user._id)) { setReservationError("Authentication details missing. Please log in again."); return; }
+    const hasSelection = Object.values(selectedClasses).some(arr => arr.length > 0);
+    if (!hasSelection) { setReservationError("Please select at least one class time to reserve."); return; }
 
-  // Handle Reserve Button Click
-  const handleReserve = async () => {
-    setReservationError(null);
-    setSuccessMessage(null);
-    if (isAuthLoading) { console.warn("Reserve clicked while auth loading"); return; } // Added check
-    if (!user || !user.id) { setReservationError("You must be logged in."); return; }
-    const hasSelection = Object.keys(selectedClasses).length > 0;
-    if (!hasSelection) { setReservationError("Please select a class."); return; }
-
-    const userIdToSend = user.id;
-    setIsReserving(true);
-
-    // --- ADD THIS LOG ---
     const token = localStorage.getItem("token");
-    console.log(`[DropIn Reserve] Token from localStorage: `, token);
-    // --- END LOG ---
+    console.log(`[DropIn Reserve] Token: `, token ? 'Exists' : 'null');
+    if (!token) { setReservationError("Authentication error. Please log in again."); return; }
 
-    // Check if token exists *before* fetching
-    if (!token) {
-        console.error("[DropIn Reserve] No token found before fetch!");
-        setReservationError("Authentication error. Please log in again.");
-        setIsReserving(false);
-        // Optionally navigate('/login');
-        return;
-    }
-    // --- End Check ---
+    setIsReserving(true);
+    console.log("Sending reservation data to backend:", { reservations: selectedClasses });
 
-    console.log("Sending reservation data:", { reservations: selectedClasses, userId: userIdToSend });
     try {
-      const res = await fetch("http://localhost:5001/api/classes/reserve", {
+      const apiUrl = "http://localhost:5001/api/classes/reserve";
+      const res = await fetch(apiUrl, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            // Ensure the Authorization header is correctly formatted
-            "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ reservations: selectedClasses, userId: userIdToSend }),
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ reservations: selectedClasses }),
       });
 
-      // Check status code BEFORE trying to parse JSON if it's 401
-      if (res.status === 401) {
-          throw new Error("Not authorized (401). Please log in again.");
+      // Specific check for auth errors first
+      if (res.status === 401 || res.status === 403) {
+          let errorMsg = `Not authorized (${res.status}). Session may have expired.`;
+          try { const errData = await res.json(); errorMsg = errData.message || errorMsg; } catch(e){}
+          throw new Error(errorMsg);
       }
 
-      const result = await res.json(); // Try parsing JSON
-      if (!res.ok) {
-         // Use specific error message from backend if available
+      // Await parsing for all other responses
+      const result = await res.json();
+
+      if (!res.ok) { // Handle other non-success statuses
          throw new Error(result.message || result.error || `Reservation failed: ${res.status}`);
       }
+
+      // --- Success ---
       console.log("✅ Reservations successful:", result);
-      setSuccessMessage(result.message || "Class(es) reserved successfully!");
-      setSelectedClasses({});
-      setSelectedDate(null);
-      setAvailableClasses([]);
+      setSuccessMessage(result.message || "Class(es) reserved successfully!"); // Set state
+      setSelectedClasses({}); // Clear selections
+      setSelectedDate(null); // Collapse date card
+      setAvailableClasses([]); // Clear displayed classes
+
+       // Refresh user data (fire and forget is okay here)
+       if (typeof fetchAndUpdateUser === 'function') {
+           console.log("[DropIn Reserve] Refreshing user data...");
+           fetchAndUpdateUser();
+       } else { console.warn("[DropIn Reserve] fetchAndUpdateUser missing."); }
+
     } catch (error) {
       console.error("❌ Reservation error:", error);
-      // Set specific error based on message content if possible
-      if (error.message.includes("401")) {
-          setReservationError("Your session may have expired. Please log in again.");
-          // Optionally call logout() here?
-          // logout();
-      } else {
-          setReservationError(error.message || "An unknown error occurred during reservation.");
-      }
+      setReservationError(error.message || "An unknown error occurred.");
     } finally {
       setIsReserving(false);
     }
-  };
+  }; // --- End handleReserve ---
 
   // --- Render Logic ---
-  if (isAuthLoading) {
-      return <div className={styles.container}><p>Loading...</p></div>;
-  }
-  // Only allow logged-in users (not coaches?) to see this page? Add role check if needed.
-  if (!user && !isAuthLoading) {
-       return <div className={styles.container}><p>Please log in to reserve classes.</p></div>;
-  }
-
+  if (isAuthLoading) { return <div className={styles.container}><p className={styles.loadingText}>Loading...</p></div>; }
+  if (!user && !isAuthLoading) { return (<div className={styles.container}><h1 className={styles.title}>Drop In</h1><p className={styles.errorText}>Please <Link to="/login" className={styles.inlineLink}>log in</Link> to reserve classes.</p></div>); }
 
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Drop In</h1>
-      <div className={styles.classes}> {/* Date Card Container */}
-        {weekSchedule.map(({ id, date }) => { // id is 'YYYY-MM-DD'
-          const hasSelectedForThisDate = selectedClasses[id]?.length > 0;
-          const isExpanded = selectedDate?.toISOString().split('T')[0] === id;
 
+      {/* Date Card Container */}
+      <div className={styles.classes}>
+        {weekSchedule.map(({ id, date }) => {
+          const hasSelectedForThisDate = selectedClasses[id]?.length > 0;
+          const isExpanded = selectedDate ? formatISO(selectedDate, { representation: 'date' }) === id : false;
           return (
             <React.Fragment key={id}>
-              <div
+              <div /* Date Card */
                 className={`${styles.classCard} ${isExpanded ? styles.selected : ""}`}
                 onClick={() => handleSelectDate(date)}
+                role="button" tabIndex={0} onKeyPress={(e) => e.key === 'Enter' && handleSelectDate(date)}
               >
-                {format(date, "EEEE, MMMM do")}
-                {hasSelectedForThisDate && " ✅"}
+                {format(date, "EEEE, MMMM do")} {hasSelectedForThisDate && " ✅"}
               </div>
-              {isExpanded && (
+              {isExpanded && ( /* Class List */
                 <div className={styles.classList}>
-                  {isFetchingClasses ? (
-                    <p>Loading classes...</p>
-                  ) : fetchError ? (
-                      <p style={{ color: 'red' }}>{fetchError}</p>
-                  ): availableClasses.length > 0 ? (
-                    availableClasses.map((classInfo) => {
+                  {isFetchingClasses ? <p className={styles.loadingText}>Loading...</p>
+                   : fetchError ? <p className={styles.errorText}>{fetchError}</p>
+                   : availableClasses.length > 0 ? ( availableClasses.map((classInfo) => {
                       let timeString = `${classInfo.startTime} - ${classInfo.endTime}`;
-                      try {
-                          const start = parse(classInfo.startTime, "H:mm", new Date());
-                          const end = parse(classInfo.endTime, "H:mm", new Date());
-                          if (!isNaN(start) && !isNaN(end)) {
-                              timeString = `${format(start, "h:mm a")} - ${format(end, "h:mm a")}`;
-                          }
-                      } catch(e) {/* Ignore */}
-                      // Use the 'id' (YYYY-MM-DD) as the key for selection state
+                      try { const start = parse(classInfo.startTime, "H:mm", new Date()); const end = parse(classInfo.endTime, "H:mm", new Date()); if (!isNaN(start) && !isNaN(end)) { timeString = `${format(start, "h:mm a")} - ${format(end, "h:mm a")}`; }} catch(e) { console.warn("Time parse err",e); }
                       const isSelected = selectedClasses[id]?.includes(classInfo._id);
                       return (
-                        <div
+                        <div /* Time Slot Card */
                           key={classInfo._id}
-                          className={`${styles.classCard} ${isSelected ? styles.selected : ""}`}
-                          onClick={() => toggleClassSelection(id, classInfo._id)} // Pass 'id' as dateKey
-                        >
-                          {timeString}
-                          {isSelected && " ✔"}
-                        </div>
-                      );
+                          className={`${styles.classCard} ${styles.timeSlot} ${isSelected ? styles.selected : ""}`}
+                          onClick={() => toggleClassSelection(id, classInfo._id)}
+                           role="button" tabIndex={0} onKeyPress={(e) => e.key === 'Enter' && toggleClassSelection(id, classInfo._id)}
+                        > {timeString} {isSelected && " ✔"} </div> );
                     })
-                  ) : (
-                    <p className={styles.noClasses}>
-                      No classes available for this day.
-                    </p>
-                  )}
+                  ) : (<p className={styles.noClasses}>No classes available.</p>) }
                 </div>
               )}
             </React.Fragment>
@@ -251,18 +170,25 @@ const DropIn = () => {
         })}
       </div>
 
-      {/* Display Reservation Feedback */}
-      {reservationError && <p style={{ color: 'red', marginTop: '15px', textAlign: 'center' }}>{reservationError}</p>}
-      {successMessage && <p style={{ color: 'green', marginTop: '15px', textAlign: 'center' }}>{successMessage}</p>}
+      {/* Feedback Area */}
+      <div className={styles.feedbackContainer}>
+          {successMessage && <p className={styles.successText}>{successMessage}</p>}
+          {reservationError && <p className={styles.errorText}>{reservationError}</p>}
+      </div>
 
-      {/* Reserve Button */}
-      <button
-          className={styles.reserveBtn}
-          onClick={handleReserve}
-          disabled={isAuthLoading || isReserving || Object.keys(selectedClasses).length === 0}
-      >
-        {isReserving ? "Reserving..." : "Reserve Selected Spaces"}
-      </button>
+      {/* Reserve Button Container */}
+      <div className={styles.reserveButtonContainer}>
+          {/* --- Ensure onClick passes the event --- */}
+          <button
+              type="button" // Keep this!
+              className={styles.reserveBtn}
+              onClick={(e) => handleReserve(e)} // <-- Pass the event object 'e'
+              disabled={isAuthLoading || isReserving || !Object.values(selectedClasses).some(arr => arr.length > 0)}
+          >
+            {isReserving ? "Reserving..." : "Reserve Selected Spaces"}
+          </button>
+          {/* --- --- --- --- --- --- --- --- --- --- --- */}
+      </div>
     </div>
   );
 };

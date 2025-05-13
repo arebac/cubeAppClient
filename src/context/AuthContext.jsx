@@ -1,203 +1,187 @@
 // src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { jwtDecode } from "jwt-decode"; // Ensure installed: npm install jwt-decode
 
 // Define initial context structure
 const initialContext = {
   user: null,
-  login: async (token, role) => {}, // Async placeholder
+  token: null,
+  login: async (token) => {},
   logout: () => {},
-  isAuthLoading: true, // Start as true until initial check completes
+  isAuthLoading: true, // Tracks ONLY the initial authentication check state
+  fetchAndUpdateUser: async () => null,
 };
 
 export const AuthContext = createContext(initialContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true); // Tracks initial load AND post-login fetch
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
+  // isAuthLoading is now primarily for the *initial* determination of auth status
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  // --- Verify User on Initial Load ---
+  // --- Reusable Function to Fetch User Data ---
+  // Accepts flag to determine if it should affect the global initial loading state
+  const fetchUserData = useCallback(async (currentToken, isInitialLoad = false) => {
+    // Reset user state if no token is provided
+    if (!currentToken) {
+      console.log("fetchUserData: No token provided.");
+      setUser(null);
+      if (isInitialLoad) setIsAuthLoading(false); // Finish initial loading if no token
+      return null;
+    }
+
+    // --- Only set global loading true on the very first check ---
+    if (isInitialLoad) {
+        console.log("fetchUserData: Initial auth check starting...");
+        setIsAuthLoading(true);
+    } else {
+         console.log("fetchUserData: Background refresh or post-login fetch starting...");
+         // DO NOT set global loading true for background refreshes
+    }
+
+    let decodedToken;
+    try {
+      // Basic token validation (structure and expiry)
+      decodedToken = jwtDecode(currentToken);
+      if (!decodedToken.id || !decodedToken.role) throw new Error('Token missing required fields');
+      const now = Date.now().valueOf() / 1000;
+      if (typeof decodedToken.exp !== 'undefined' && decodedToken.exp < now) throw new Error('Token expired');
+    } catch (decodeError) {
+      console.error("fetchUserData: Invalid or expired token.", decodeError);
+      localStorage.removeItem("token"); // Clean up bad token
+      setToken(null); // Update token state (triggers useEffect to confirm logged-out state)
+      setUser(null);
+      if (isInitialLoad) setIsAuthLoading(false); // Finish initial loading on error
+      return null;
+    }
+
+    // Determine backend endpoint (ensure this endpoint returns FULL user data)
+    const endpoint = `http://localhost:5001/api/user/profile`; // Assuming one profile endpoint
+    console.log(`fetchUserData: Fetching profile from ${endpoint}`);
+
+    try {
+      // Fetch user data from backend, authenticating with the token
+      const response = await fetch(endpoint, {
+        headers: { Authorization: `Bearer ${currentToken}` },
+      });
+
+      if (!response.ok) {
+        const status = response.status;
+        console.warn(`fetchUserData: Backend verification failed - ${status} ${response.statusText}`);
+        // If backend rejects token (401/403), treat as logout
+        if (status === 401 || status === 403) throw new Error(`Backend rejected token (${status})`);
+        // For other errors, still treat as failed fetch
+        throw new Error(`Failed to fetch user data (${status})`);
+      }
+
+      const userData = await response.json();
+      console.log("fetchUserData: Received user data:", userData);
+
+      // Validate received data structure (at least an ID)
+      if (userData && (userData.id || userData._id)) {
+        console.log("fetchUserData: Setting user state.");
+        setUser(userData); // Set the full, validated user data
+        if (isInitialLoad) setIsAuthLoading(false); // Finish initial loading successfully
+        return userData; // Return data
+      } else {
+        // Backend returned 200 OK but data is invalid/incomplete
+        console.warn("fetchUserData: Fetched data invalid (missing id).", userData);
+        throw new Error("Invalid user data received from backend");
+      }
+    } catch (error) {
+      // Catch errors from fetch or data validation
+      console.error("fetchUserData: Auth verification/fetch error:", error.message);
+      localStorage.removeItem("token"); // Clean up storage
+      setToken(null); // Update token state (triggers useEffect)
+      setUser(null);
+      if (isInitialLoad) setIsAuthLoading(false); // Finish initial loading on error
+      return null;
+    }
+    // NOTE: No finally block setting isAuthLoading false here,
+    // it's handled within the logic based on isInitialLoad flag.
+  }, []); // useCallback dependencies are empty
+
+
+  // --- Effect for Initial Load / Token Changes ---
+  // Runs once on mount and again if the token state changes (e.g., after login/logout)
   useEffect(() => {
-    const verifyUserOnLoad = async () => {
-      console.log("AuthProvider (Load): Checking for token...");
-      setIsAuthLoading(true); // Start loading check
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setUser(null);
-        setIsAuthLoading(false);
-        console.log("AuthProvider (Load): No token found.");
-        return;
-      }
-
-      // Decode locally first to determine role and basic validation
-      let decodedToken;
-      try {
-        decodedToken = jwtDecode(token);
-        // Optional: Check expiry locally (jwtDecode doesn't verify signature/expiry)
-        // const now = Date.now().valueOf() / 1000;
-        // if (typeof decodedToken.exp !== 'undefined' && decodedToken.exp < now) {
-        //     console.log("AuthProvider (Load): Token expired locally.");
-        //     throw new Error('Token expired');
-        // }
-        if (!decodedToken.id || !decodedToken.role) {
-             throw new Error('Token missing required fields (id, role)');
-        }
-      } catch (decodeError) {
-          console.error("AuthProvider (Load): Invalid token found in storage.", decodeError);
-          localStorage.removeItem("token");
-          localStorage.removeItem("role");
-          setUser(null);
-          setIsAuthLoading(false);
-          return;
-      }
-
-      console.log("AuthProvider (Load): Token seems valid locally, verifying with backend...");
-      const roleToUse = decodedToken.role; // Use role from token
-
-      try {
-        const endpoint = roleToUse === 'admin'
-            ? `http://localhost:5001/api/user/admin`
-            : `http://localhost:5001/api/user/user`;
-
-        console.log(`AuthProvider (Load): Verifying with role '${roleToUse}' at ${endpoint}`);
-
-        const response = await fetch(endpoint, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          console.warn(`AuthProvider (Load): Backend token verification failed - ${response.status}`);
-          throw new Error(`Token verification failed`); // Backend rejected token
-        }
-
-        const userData = await response.json();
-
-        // Ensure backend response includes critical info
-        if (userData && (userData.id || userData._id) && userData.role) {
-          console.log("AuthProvider (Load): User verified successfully via backend.", userData);
-          setUser(userData); // Set full user data
-        } else {
-          console.warn("AuthProvider (Load): Verification OK but invalid/incomplete user data.", userData);
-          throw new Error("Invalid user data received");
-        }
-      } catch (error) {
-        console.error("AuthProvider (Load): Auth verification error:", error.message);
-        // Clear storage if backend verification fails
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        setUser(null);
-      } finally {
-        setIsAuthLoading(false); // Auth check finished (success or fail)
-        console.log("AuthProvider (Load): Initial auth check complete.");
-      }
-    };
-
-    verifyUserOnLoad();
-  }, []); // Run only once on mount
+    const currentToken = localStorage.getItem("token"); // Check storage directly on load/change
+    console.log("AuthProvider Effect: Initial load or token state changed. Token in storage:", currentToken ? "Exists" : "None");
+    // Pass 'true' for isInitialLoad ONLY during this initial check phase
+    fetchUserData(currentToken, true);
+  }, [token, fetchUserData]); // Depend on token state and the memoized fetch function
 
 
   // --- Login Function ---
-  // Receives token & role confirmed by the backend /login route
-  const login = async (token, role) => {
-    console.log(`AuthProvider (Login): Login called. Role: ${role}`);
-    console.log(`AuthProvider (Login): Received Token: ${token ? token.substring(0, 20) + '...' : 'null'}`);
+  const login = useCallback(async (newToken) => {
+    console.log(`AuthProvider (Login): Login called.`);
+    if (!newToken) { console.error("Login Error: No token provided."); return; }
+    console.log(`AuthProvider (Login): Storing new token.`);
+    localStorage.setItem("token", newToken);
+    // Update the token *state*. This will trigger the useEffect above,
+    // which will call fetchUserData(newToken, true) <- marking it as the initial load/verification for this session.
+    setToken(newToken);
+    // No need to call fetchUserData directly here or manage loading state,
+    // the useEffect handles the post-login fetch and loading state management.
+  }, []); // No dependencies
 
-    // 1. Store Token and Role immediately
-    localStorage.setItem("token", token);
-    localStorage.setItem("role", role);
-
-    // 2. Immediately set basic user state from decoded token
-    // This provides instant feedback and allows protected routes to work
-    let basicUserData = null;
-    setIsAuthLoading(true); // Indicate we are processing login state
-    try {
-        const decoded = jwtDecode(token);
-        if (decoded && decoded.id && decoded.role) {
-             basicUserData = {
-                id: decoded.id, // Use ID from token payload
-                // Use role from token payload primarily (should match 'role' arg)
-                role: decoded.role,
-                name: 'Authenticated User' // Placeholder until full data loads
-             };
-            console.log("AuthProvider (Login): Setting initial basic user state:", basicUserData);
-            setUser(basicUserData);
-        } else {
-            console.error("AuthProvider (Login): Failed to decode token or token missing required fields.");
-            throw new Error("Invalid token structure received after login.");
-        }
-    } catch(decodeError){
-         console.error("AuthProvider (Login): Error decoding received token:", decodeError);
-         logout(); // Call logout to clear everything if token is bad
-         setIsAuthLoading(false);
-         // Re-throw the error so the calling component (LoginPage) knows it failed
-         throw new Error("Failed to process session token.");
-    }
-
-    // 3. Attempt to Fetch Full User Details (Background Update)
-    // This updates the basic state with name, email, subscription etc.
-    try {
-        const endpoint = role === 'admin'
-            ? `http://localhost:5001/api/user/admin`
-            : `http://localhost:5001/api/user/user`;
-
-        console.log(`AuthProvider (Login): Fetching full user details from ${endpoint}...`);
-        const response = await fetch(endpoint, {
-            headers: { Authorization: `Bearer ${token}` }, // Use the new token
-        });
-        const fullUserData = await response.json();
-
-        if (!response.ok) {
-            // Log the error but DON'T clear the basic user state/token here
-            // unless it's specifically a 401/403 suggesting the token IS invalid.
-            console.error(`AuthProvider (Login): Failed to fetch full user details - ${response.status}`, fullUserData.message || '(No error message)');
-            if (response.status === 401 || response.status === 403) {
-                // If backend explicitly rejects token fetching full details, then logout
-                 console.error("AuthProvider (Login): Backend rejected token when fetching full details. Logging out.");
-                 logout();
-                 // Optionally throw an error back to LoginPage
-                 // throw new Error("Session validation failed after login.");
-            }
-            // For other errors (e.g., 500), we keep the basic logged-in state.
-        } else if (fullUserData && (fullUserData.id || fullUserData._id)) {
-            console.log("AuthProvider (Login): Full user details fetched successfully.", fullUserData);
-            setUser(fullUserData); // Update state with full details
-        } else {
-             console.warn("AuthProvider (Login): Fetched full user data seems invalid (missing id?).", fullUserData);
-             // Keep basic user data? Or logout? Let's keep basic for now.
-        }
-    } catch (fetchError) {
-         console.error("AuthProvider (Login): Network/fetch error getting full user details:", fetchError);
-         // Keep basic user data, don't log out on network errors
-    } finally {
-        setIsAuthLoading(false); // Finished all login processing attempts
-        console.log("AuthProvider (Login): Post-login process complete.");
-    }
-  };
 
   // --- Logout Function ---
-  const logout = () => {
+  const logout = useCallback(() => {
     console.log("AuthProvider: Logging out.");
-    setUser(null);
+    setUser(null); // Clear user state first
     localStorage.removeItem("token");
-    localStorage.removeItem("role");
-    setIsAuthLoading(false); // Ensure loading is false after logout
-  };
+    setToken(null); // Clear token state (this triggers useEffect which confirms logged-out state)
+  }, []);
+
+
+  // --- Refresh Function (Called by SubsPage, DropIn, etc.) ---
+  // This performs a background update WITHOUT affecting global loading state
+  const fetchAndUpdateUser = useCallback(async () => {
+    console.log("AuthProvider: fetchAndUpdateUser (background refresh) called");
+    const currentToken = localStorage.getItem("token");
+    if (!currentToken) {
+        console.warn("fetchAndUpdateUser: No token found for refresh.");
+        // If user state still exists somehow, log them out properly
+        if (user) logout();
+        return null;
+    }
+    // Call fetchUserData but explicitly mark it as NOT the initial load
+    return await fetchUserData(currentToken, false); // <-- Pass false here
+  }, [fetchUserData, user, logout]); // Dependencies ensure correct functions are used
+
 
   // --- Context Value ---
   const value = {
     user,
+    token,
     login,
     logout,
-    isAuthLoading
+    isAuthLoading, // Expose the initial loading state
+    fetchAndUpdateUser // Expose the background refresh function
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {/* Still show loading indicator during the *initial* auth check */}
+      {isAuthLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#000', color: '#fff' }}>
+                {/* You can replace this with a proper Spinner component */}
+                Loading Session...
+            </div>
+        ) : (
+            children // Render the rest of the app once initial check is done
+        )}
     </AuthContext.Provider>
   );
 };
 
 // --- Custom Hook ---
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
