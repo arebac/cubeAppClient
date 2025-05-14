@@ -1,308 +1,627 @@
-import React, { useEffect, useState } from "react";
-import styles from "../styles/dashboard.module.css"; // Adjust path if using styles folder
+import React, { useEffect, useState, useCallback } from "react";
+import styles from "../styles/dashboard.module.css";
 import { useNavigate } from "react-router-dom";
-// Ensure useAuth exports user, logout, isAuthLoading, and fetchAndUpdateUser
 import { useAuth } from "../context/AuthContext";
-import { format, parse, getDay, nextDay, formatISO } from 'date-fns';
+import {
+  format,
+  parse,
+  getDay,
+  addDays,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  formatISO,
+  isSameDay,
+} from "date-fns";
 
 const Dashboard = () => {
-  // Destructure what's needed from AuthContext
   const { user, logout, isAuthLoading, fetchAndUpdateUser } = useAuth();
   const navigate = useNavigate();
 
-  // State for the dashboard's specific data (schedule)
   const [scheduleData, setScheduleData] = useState([]);
-  const [showScheduleView, setShowScheduleView] = useState(false); // Controls card flip
+  const [showScheduleView, setShowScheduleView] = useState(false);
   const [scheduleLoading, setScheduleLoading] = useState(false);
-  const [scheduleError, setScheduleError] = useState(null); // Error for fetching schedule
-  const [actionError, setActionError] = useState(null); // Error for actions like dropping
-  const [actionSuccessMessage, setActionSuccessMessage] = useState(null); // Success message for actions
+  const [scheduleError, setScheduleError] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [actionSuccessMessage, setActionSuccessMessage] = useState(null);
+  const [userDropLoading, setUserDropLoading] = useState(null); // For user dropping class
+  const [coachInstanceLoading, setCoachInstanceLoading] = useState(null); // For coach cancelling instance { classId, date }
+  const [expandedClassId, setExpandedClassId] = useState(null); // For coach viewing attendees (unique key: classId+specificDate)
 
-  // State for UI feedback during actions
-  const [dropOrToggleLoading, setDropOrToggleLoading] = useState(null); // ID of class being acted upon
-  const [expandedClassId, setExpandedClassId] = useState(null); // For coach view
+  // Coach specific state for week navigation
+  const [currentWeekStart, setCurrentWeekStart] = useState(
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  );
 
-  // Derive user role from the user object in context
-  // The 'user' object here will re-render this component when it changes in AuthContext
-  const dashboardUserData = (!isAuthLoading && user) ? user : null;
-  const userRole = dashboardUserData?.role || 'user';
+  const dashboardUserData = !isAuthLoading && user ? user : null;
+  const userRole = dashboardUserData?.role || "user";
 
-  console.log("Dashboard rendered. AuthLoading:", isAuthLoading, "User from context:", dashboardUserData);
+  console.log(
+    `Dashboard rendered. AuthLoading: ${isAuthLoading}, User: ${
+      dashboardUserData?._id
+    }, Role: ${userRole}, WeekStart: ${
+      currentWeekStart ? formatISO(currentWeekStart) : "N/A"
+    }`
+  );
 
-  // Fetch Schedule Data (My Reservations or Coached Classes)
-  const fetchScheduleData = async () => {
-    if (!dashboardUserData || !(dashboardUserData.id || dashboardUserData._id)) {
-         console.log("fetchScheduleData: No user or user ID to fetch schedule.");
-         // Don't set an error here, just don't fetch if no user
-         return;
-    }
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setScheduleError("Authentication token missing for schedule fetch.");
-      return;
-    }
-
-    console.log(`[Dashboard Fetch Schedule] Token from localStorage: `, token ? "Exists" : "Missing");
-    setScheduleLoading(true);
-    setScheduleError(null); // Clear previous schedule errors
-    setActionError(null); // Clear previous action errors
-    setActionSuccessMessage(null); // Clear previous success messages
-    // setScheduleData([]); // Optionally clear old data, or let it persist until new data arrives
-
-    const endpoint = userRole === 'coach'
-      ? `http://localhost:5001/api/user/coaching-schedule` // Ensure correct endpoint
-      : `http://localhost:5001/api/user/my-reservations`;  // Ensure correct endpoint
-
-    let fetchUrl = endpoint;
-    if (userRole === 'coach') {
-      const todayDateString = formatISO(new Date(), { representation: 'date' });
-      fetchUrl = `${endpoint}?date=${todayDateString}`;
-    }
-    console.log(`Fetching schedule from: ${fetchUrl}`);
-
-    try {
-      const res = await fetch(fetchUrl, {
-        method: "GET",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) {
-        let errorMsg = `Failed to fetch schedule: ${res.status}`;
-        try { const errorData = await res.json(); errorMsg = errorData.message || errorMsg; } catch (e) {}
-        throw new Error(errorMsg);
+  // --- Data Fetching (Corrected to handle date argument for coach) ---
+  const fetchScheduleData = useCallback(
+    async (dateForCoachView) => {
+      if (
+        !dashboardUserData ||
+        !(dashboardUserData._id || dashboardUserData.id)
+      ) {
+        console.log("fetchScheduleData: No user/ID. Clearing schedule.");
+        setScheduleData([]);
+        return;
       }
-      const data = await res.json();
-      console.log("Fetched schedule data:", data);
-      setScheduleData(data);
-    } catch (error) {
-      console.error(`❌ Error fetching ${userRole} schedule:`, error);
-      setScheduleError(error.message || `Could not load ${userRole} schedule.`);
-      setScheduleData([]); // Clear data on error
-    } finally {
-      setScheduleLoading(false);
-    }
-  };
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setScheduleError("Auth token missing.");
+        setScheduleData([]);
+        return;
+      }
 
-  // --- Effect to fetch schedule data when the user is available or role changes ---
-  // This is important if the component loads before user data is fully ready,
-  // or if the user data (like role) might change.
+      setScheduleLoading(true);
+      setScheduleError(null);
+      // Don't clear action messages here, let action handlers manage them
+      // setActionError(null); setActionSuccessMessage(null);
+
+      let fetchUrl;
+      if (userRole === "coach") {
+        // Ensure dateForCoachView is a valid Date object
+        if (
+          !dateForCoachView ||
+          !(dateForCoachView instanceof Date) ||
+          isNaN(dateForCoachView.getTime())
+        ) {
+          console.error(
+            "fetchScheduleData (coach): Invalid or missing dateForCoachView.",
+            dateForCoachView
+          );
+          setScheduleError("Cannot fetch coach schedule: Date is invalid.");
+          setScheduleLoading(false);
+          setScheduleData([]);
+          return;
+        }
+        const startDateParam = formatISO(dateForCoachView, {
+          representation: "date",
+        });
+        fetchUrl = `http://localhost:5001/api/user/coaching-schedule?startDate=${startDateParam}&view=week`;
+      } else {
+        // User
+        fetchUrl = `http://localhost:5001/api/user/my-reservations`;
+      }
+      console.log(`Fetching schedule from: ${fetchUrl}`);
+
+      try {
+        const res = await fetch(fetchUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          let eMsg = `Failed to fetch schedule: ${res.status}`;
+          try {
+            const eD = await res.json();
+            eMsg = eD.message || eMsg;
+          } catch (_) {}
+          throw new Error(eMsg);
+        }
+        const data = await res.json();
+        console.log("Fetched schedule data:", data);
+        setScheduleData(data);
+      } catch (error) {
+        console.error(`❌ Error fetching ${userRole} schedule:`, error);
+        setScheduleError(error.message || `Could not load schedule.`);
+        setScheduleData([]);
+      } finally {
+        setScheduleLoading(false);
+      }
+    },
+    [dashboardUserData, userRole]
+  ); // Removed currentWeekStart, it's passed as an argument
+
+  // Effect to fetch data when view/user/week changes
   useEffect(() => {
-    if (dashboardUserData && (dashboardUserData.id || dashboardUserData._id) && showScheduleView) {
-        console.log("useEffect [dashboardUserData, showScheduleView]: Fetching schedule data because user is available and schedule view is active.");
-        fetchScheduleData();
+    if (dashboardUserData && showScheduleView) {
+      if (userRole === "coach") {
+        // currentWeekStart is guaranteed to be a Date by its useState initializer
+        console.log(
+          "useEffect (coach): Fetching coach schedule for week starting:",
+          currentWeekStart
+        );
+        fetchScheduleData(currentWeekStart);
+      } else {
+        console.log("useEffect (user): Fetching user reservations.");
+        fetchScheduleData(); // No date arg needed for user's 'my-reservations'
+      }
     } else if (!dashboardUserData && showScheduleView) {
-        console.log("useEffect [dashboardUserData, showScheduleView]: Schedule view active but no user data, clearing schedule.");
-        setScheduleData([]); // Clear schedule if user logs out while view is active
+      console.log("useEffect: No user, clearing schedule data.");
+      setScheduleData([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dashboardUserData, showScheduleView]); // Re-run if user data changes or view toggles
-  // Note: Added eslint-disable for fetchScheduleData as it's stable if not memoized,
-  // but for strictness, you could wrap fetchScheduleData in useCallback.
+  }, [
+    dashboardUserData,
+    showScheduleView,
+    userRole,
+    currentWeekStart,
+    fetchScheduleData,
+  ]);
 
-  // Toggle Flip View
+  // --- Event Handlers ---
   const handleToggleScheduleView = () => {
     const willShow = !showScheduleView;
     setShowScheduleView(willShow);
-    setActionError(null); // Clear errors when flipping
+    setActionError(null);
     setActionSuccessMessage(null);
-    // If flipping to schedule view and data hasn't been loaded yet
-    if (willShow && scheduleData.length === 0 && !scheduleLoading && dashboardUserData) {
-      console.log("Flipping to schedule view, fetching initial schedule data.");
-      fetchScheduleData();
+    if (willShow && !scheduleLoading && dashboardUserData) {
+      // Data fetching is now handled by the useEffect when showScheduleView becomes true
+      console.log(
+        "Toggled schedule view to visible. useEffect will handle fetch if needed."
+      );
     }
   };
 
-  // Handle Dropping a Class (User only)
   const handleDropClass = async (classId) => {
-    if (!dashboardUserData || !(dashboardUserData.id || dashboardUserData._id)) {
-        setActionError("Authentication error. Please log in to drop a class.");
-        return;
+    if (
+      !dashboardUserData ||
+      !(dashboardUserData.id || dashboardUserData._id)
+    ) {
+      setActionError("Auth error.");
+      return;
     }
     if (!classId) {
-        setActionError("Invalid class information for dropping.");
-        return;
+      setActionError("Invalid class info.");
+      return;
     }
-
     const token = localStorage.getItem("token");
     if (!token) {
-        setActionError("Authentication session missing. Please log in again.");
-        return;
+      setActionError("Auth session missing.");
+      return;
     }
 
-    setDropOrToggleLoading(classId); // Show loading on the specific button
-    setActionError(null); // Clear previous action errors
-    setActionSuccessMessage(null); // Clear previous success messages
-
-    console.log(`[Dashboard Drop Class] User: ${dashboardUserData.id || dashboardUserData._id} attempting to drop Class: ${classId}`);
-
+    setUserDropLoading(classId);
+    setActionError(null);
+    setActionSuccessMessage(null);
     try {
-        const res = await fetch("http://localhost:5001/api/user/drop-reservation", { // Verify this endpoint
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ classId: classId }),
-        });
-
-        const result = await res.json(); // Always try to parse JSON
-
-        if (!res.ok) {
-            // Use message from backend response if available
-            throw new Error(result.message || `Failed to drop class: ${res.status}`);
+      const res = await fetch(
+        "http://localhost:5001/api/user/drop-reservation",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ classId }),
         }
-
-        console.log("✅ Class dropped successfully (backend response):", result);
-        setActionSuccessMessage(result.message || "Class dropped successfully and token refunded!"); // Set success message
-
-        // --- REFRESH DATA ---
-        // 1. Refresh the list of reservations displayed on the dashboard
-        fetchScheduleData();
-
-        // 2. Refresh the global user state (to update token count displayed on THIS page)
-        if (typeof fetchAndUpdateUser === 'function') {
-            console.log("[Dashboard Drop Class] Calling fetchAndUpdateUser to refresh global user data.");
-            await fetchAndUpdateUser(); // Await to ensure context is updated before potential re-renders
-            console.log("[Dashboard Drop Class] Global user data refresh complete.");
-        } else {
-            console.warn("[Dashboard Drop Class] fetchAndUpdateUser not available in AuthContext. Token count might be stale until next full refresh/login.");
-        }
-        // --- --- --- --- --- ---
-
+      );
+      const result = await res.json();
+      if (!res.ok)
+        throw new Error(result.message || `Drop failed: ${res.status}`);
+      setActionSuccessMessage(
+        result.message || "Class dropped & token refunded!"
+      );
+      if (typeof fetchAndUpdateUser === "function") await fetchAndUpdateUser();
+      await fetchScheduleData(); // For user view, no date arg
     } catch (error) {
-        console.error("❌ Error dropping class:", error);
-        setActionError(error.message || "Could not drop the class.");
+      console.error("❌ Error dropping class:", error);
+      setActionError(error.message || "Could not drop class.");
     } finally {
-        setDropOrToggleLoading(null); // Hide loading state for button
+      setUserDropLoading(null);
     }
   };
 
-  // Handle Toggling Attendee List (Coach only)
-  const handleToggleAttendees = (classId) => {
-    if (userRole !== 'coach') return;
-    setExpandedClassId(prevId => (prevId === classId ? null : prevId));
+  const handleToggleInstanceCancellation = async (
+    classId,
+    specificDate,
+    currentCancelStatus
+  ) => {
+    if (userRole !== "coach" && userRole !== "admin") {
+      setActionError("Permission denied.");
+      return;
+    }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setActionError("Auth session missing.");
+      return;
+    }
+
+    setCoachInstanceLoading({ classId, date: specificDate });
+    setActionError(null);
+    setActionSuccessMessage(null);
+
+    const payload = {
+      classId,
+      date: specificDate,
+      cancel: !currentCancelStatus,
+    };
+    try {
+      const res = await fetch(
+        "http://localhost:5001/api/classes/instance/toggle-cancellation",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok)
+        throw new Error(result.message || `Failed to update: ${res.status}`);
+      setActionSuccessMessage(result.message || "Class status updated!");
+      // Pass currentWeekStart to refresh the correct week for the coach
+      await fetchScheduleData(currentWeekStart);
+    } catch (error) {
+      console.error("❌ Error toggling instance cancellation:", error);
+      setActionError(error.message || "Could not update class status.");
+    } finally {
+      setCoachInstanceLoading(null);
+    }
   };
 
-  // Handle Logout
+  const handlePreviousWeek = () =>
+    setCurrentWeekStart((prev) => addDays(prev, -7));
+  const handleNextWeek = () => setCurrentWeekStart((prev) => addDays(prev, 7));
   const handleLogout = () => {
-    logout(); // From AuthContext
-    navigate("/"); // Redirect to home or login page
+    logout();
+    navigate("/");
+  };
+  const getNextDateForDay = (dayOfWeek) => {
+    const t = new Date(),
+      cD = getDay(t);
+    try {
+      const d = Number(dayOfWeek);
+      if (isNaN(d) || d < 0 || d > 6)
+        throw new Error(`Invalid day: ${dayOfWeek}`);
+      return cD === d ? t : nextDay(t, d);
+    } catch (e) {
+      console.error("Date calc error:", e, "Input:", dayOfWeek);
+      return null;
+    }
   };
 
-  // Date Helper (Keep as is)
-  const getNextDateForDay = (dayOfWeek) => { /* ... your existing logic ... */
-    const today = new Date(); const currentDay = getDay(today); try { const targetDay = Number(dayOfWeek); if (isNaN(targetDay) || targetDay < 0 || targetDay > 6) throw new Error(`Invalid day: ${dayOfWeek}`); return (currentDay === targetDay) ? today : nextDay(today, targetDay); } catch (e) { console.error("Date calc error:", e); return null; }
+  const toggleCoachClassDetails = (uniqueInstanceId) => {
+    // uniqueInstanceId is classId + specificDate
+    if (userRole !== "coach") return;
+    console.log("[Toggle Details] Clicked for instance:", uniqueInstanceId);
+    console.log("[Toggle Details] Current expandedClassId:", expandedClassId);
+    setExpandedClassId((prevId) => {
+      const newId = prevId === uniqueInstanceId ? null : uniqueInstanceId;
+      console.log("[Toggle Details] New expandedClassId:", newId);
+      return newId;
+    });
   };
 
+  if (isAuthLoading)
+    return (
+      <div className={styles.container}>
+        <p className={styles.loadingText}>Loading Dashboard...</p>
+      </div>
+    );
+  if (!dashboardUserData)
+    return (
+      <div className={styles.container}>
+        <p className={styles.errorText}>
+          Please log in to view your dashboard.
+        </p>
+      </div>
+    );
 
-  // --- Render Logic ---
-  if (isAuthLoading) {
-    // Show a full-page loader if initial auth check is happening
-    return <div className={styles.container}><p className={styles.loadingText}>Loading Dashboard...</p></div>;
-  }
-  if (!dashboardUserData) {
-    // If not loading and no user, prompt to log in
-    return <div className={styles.container}><p className={styles.errorText}>Please log in to view your dashboard.</p></div>;
-  }
+  const weekDaysForDisplay =
+    userRole === "coach"
+      ? eachDayOfInterval({
+          start: currentWeekStart,
+          end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }),
+        })
+      : [];
 
-  const scheduleButtonText = userRole === 'coach' ? 'My Classes' : 'My Reservations';
-  const scheduleTitleText = userRole === 'coach' ? 'My Coached Classes (Today)' : 'My Upcoming Classes';
+  const scheduleButtonText =
+    userRole === "coach" ? "My Weekly Schedule" : "My Reservations";
+  const scheduleTitleText =
+    userRole === "coach"
+      ? `Schedule: ${format(currentWeekStart, "MMM d")} - ${format(
+          endOfWeek(currentWeekStart, { weekStartsOn: 1 }),
+          "MMM d, yyyy"
+        )}`
+      : "My Upcoming Classes";
 
   return (
     <div className={styles.container}>
-      {/* Main Card with Flip Animation */}
-      <div className={`${styles.card} ${showScheduleView ? styles.cardFlipped : ''}`}>
-
-        {/* ===== FRONT FACE (User Info & Subscription) ===== */}
+      <div
+        className={`${styles.card} ${
+          showScheduleView ? styles.cardFlipped : ""
+        }`}
+      >
+        {/* ===== FRONT FACE ===== */}
         <div className={`${styles.cardFace} ${styles.cardFaceFront}`}>
           <div className={styles.header}>
-            {/* Display user's name from AuthContext user object */}
             <h1 className={styles.title}>Welcome, {dashboardUserData.name}!</h1>
           </div>
           <div className={styles.section}>
             <h2>User Info</h2>
-            <p><strong>Email:</strong> {dashboardUserData.email}</p>
-            <p><strong>Phone:</strong> {dashboardUserData.phone || 'N/A'}</p>
-            <p><strong>Fitness Level:</strong> {dashboardUserData.fitnessLevel || 'N/A'}</p>
+            <p>
+              <strong>Email:</strong> {dashboardUserData.email}
+            </p>
+            <p>
+              <strong>Phone:</strong> {dashboardUserData.phone || "N/A"}
+            </p>
+            <p>
+              <strong>Fitness Level:</strong>{" "}
+              {dashboardUserData.fitnessLevel || "N/A"}
+            </p>
           </div>
-          {userRole === 'user' && (
+          {userRole === "user" && (
             <div className={styles.section}>
               <h2>Subscription</h2>
-              {/* Display subscription details from AuthContext user object */}
-              <p><strong>Plan:</strong> {dashboardUserData.subscriptionPlan || "No active subscription"}</p>
-              <p><strong>Tokens:</strong> {typeof dashboardUserData.tokens === 'number' ? dashboardUserData.tokens : 'N/A'}</p>
-              <p><strong>Expires:</strong> {dashboardUserData.subscriptionExpiresAt ? format(new Date(dashboardUserData.subscriptionExpiresAt), 'PPP') : 'N/A'}</p>
+              <p>
+                <strong>Plan:</strong>{" "}
+                {dashboardUserData.subscriptionPlan || "No active subscription"}
+              </p>
+              <p>
+                <strong>Tokens:</strong>{" "}
+                {typeof dashboardUserData.tokens === "number"
+                  ? dashboardUserData.tokens
+                  : "N/A"}
+              </p>
+              <p>
+                <strong>Expires:</strong>{" "}
+                {dashboardUserData.subscriptionExpiresAt
+                  ? format(
+                      new Date(dashboardUserData.subscriptionExpiresAt),
+                      "PPP"
+                    )
+                  : "N/A"}
+              </p>
             </div>
           )}
           <div className={styles.actions}>
             <button
-              type="button" // Good practice
+              type="button"
               className={styles.btn}
               onClick={handleToggleScheduleView}
-              disabled={scheduleLoading && !showScheduleView} // Disable if schedule is loading for the back face
+              disabled={scheduleLoading && !showScheduleView}
             >
               {showScheduleView ? "View Dashboard" : scheduleButtonText}
             </button>
-            <button type="button" onClick={handleLogout} className={styles.btn}>Log Out</button>
+            <button type="button" onClick={handleLogout} className={styles.btn}>
+              Log Out
+            </button>
           </div>
         </div>
-        {/* ===== END FRONT FACE ===== */}
 
-        {/* ===== BACK FACE (Reservations / Coached Classes) ===== */}
+        {/* ===== BACK FACE ===== */}
         <div className={`${styles.cardFace} ${styles.cardFaceBack}`}>
           <div className={styles.reservationsContainer}>
             <h2>{scheduleTitleText}</h2>
-
-            {/* Display feedback for actions on this face */}
-            {actionError && <p className={styles.errorText}>{actionError}</p>}
-            {actionSuccessMessage && <p className={styles.successText}>{actionSuccessMessage}</p>}
-
-            {scheduleLoading && <p className={styles.loadingText}>Loading schedule...</p>}
-            {scheduleError && !scheduleLoading && <p className={styles.errorText}>Error: {scheduleError}</p>}
-
-            {!scheduleLoading && !scheduleError && (
-              scheduleData.length > 0 ? (
-                <div className={styles.reservationsGrid}>
-                  {scheduleData.map(item => {
-                    // ... (your existing map logic for displaying each reservation/class item) ...
-                    // Ensure the "Drop" button calls handleDropClass(item._id) for user reservations
-                    let timeString = `${item.startTime} - ${item.endTime}`;
-                    try { const start = parse(item.startTime, "H:mm", new Date()); const end = parse(item.endTime, "H:mm", new Date()); if (!isNaN(start) && !isNaN(end)) timeString = `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`; } catch (e) {}
-                    const nextOccurrenceDate = getNextDateForDay(item.dayOfWeek);
-                    const isLoadingAction = dropOrToggleLoading === item._id;
-                    const isExpanded = expandedClassId === item._id;
-
-                    return userRole === 'coach' ? (
-                      <div key={item._id} className={`${styles.reservationCard} ${styles.coachCard}`}>
-                        <h3>{item.title}</h3> <p>{timeString}</p>
-                        <p className={styles.attendeeCount}>Attendees: {item.attendees?.length ?? 0} / {item.max_capacity}</p>
-                        <button className={styles.btnToggleAttendees} onClick={() => handleToggleAttendees(item._id)} disabled={isLoadingAction}>
-                          {isExpanded ? 'Hide List' : 'View Attendees'}
-                        </button>
-                        {isExpanded && ( <div className={styles.attendeeList}> {/* ... attendee list ... */} </div> )}
-                      </div>
-                    ) : (
-                      <div key={item._id} className={styles.reservationCard}>
-                        <h3>{nextOccurrenceDate ? format(nextOccurrenceDate, 'EEEE, MMM d') : `Day ${item.dayOfWeek}`}</h3>
-                        <p> {item.title}<br />{timeString} </p>
-                        <button
-                          type="button" // Good practice
-                          className={styles.btnDrop}
-                          onClick={() => handleDropClass(item._id)} // Calls the updated handler
-                          disabled={isLoadingAction} >
-                          {isLoadingAction ? 'Dropping...' : 'Drop'}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className={styles.noReservations}>No {userRole === 'coach' ? 'classes found for today' : 'upcoming reservations'}.</p>
-              )
+            {userRole === 'coach' && (
+      <div className={styles.weekNavigation}>
+        <button type="button" onClick={handlePreviousWeek} className={styles.btnNav} disabled={scheduleLoading}> Prev </button>
+        <button type="button" onClick={handleNextWeek} className={styles.btnNav} disabled={scheduleLoading}>Next </button> {/* CORRECTED */}
+      </div>
+    )}
+            <div className={styles.feedbackContainer}>
+              {actionError && <p className={styles.errorText}>{actionError}</p>}
+              {actionSuccessMessage && (
+                <p className={styles.successText}>{actionSuccessMessage}</p>
+              )}
+            </div>
+            {scheduleLoading && (
+              <p className={styles.loadingText}>Loading schedule...</p>
             )}
+            {scheduleError && !scheduleLoading && (
+              <p className={styles.errorText}>Error: {scheduleError}</p>
+            )}
+
+            {!scheduleLoading &&
+              !scheduleError &&
+              (scheduleData.length > 0 ? (
+                userRole === "coach" ? (
+                  // --- COACH WEEKLY VIEW ---
+                  <div className={styles.weeklyScheduleGrid}>
+                    {weekDaysForDisplay.map((day) => {
+                      const classesForThisDay = scheduleData.filter(
+                        (cls) =>
+                          cls.specificDate ===
+                          formatISO(day, { representation: "date" })
+                      );
+                      return (
+                        <div key={formatISO(day)} className={styles.dayColumn}>
+                          <h4 className={styles.dayHeader}>
+                            {format(day, "EEEE, MMM d")}
+                          </h4>
+                          {classesForThisDay.length > 0 ? (
+                            classesForThisDay.map((item) => {
+                              let timeString = `${item.startTime} - ${item.endTime}`;
+                              try {
+                                const s = parse(
+                                    item.startTime,
+                                    "H:mm",
+                                    new Date()
+                                  ),
+                                  e = parse(item.endTime, "H:mm", new Date());
+                                if (!isNaN(s) && !isNaN(e))
+                                  timeString = `${format(
+                                    s,
+                                    "h:mm a"
+                                  )} - ${format(e, "h:mm a")}`;
+                              } catch (_) {}
+                              const isLoadingThisInstance =
+                                coachInstanceLoading?.classId === item._id &&
+                                coachInstanceLoading?.date ===
+                                  item.specificDate;
+                              const uniqueInstanceId =
+                                item._id + item.specificDate; // Create a unique ID for expansion state
+                              const isCurrentlyExpanded =
+                                expandedClassId === uniqueInstanceId;
+                              return (
+                                <div
+                                  key={uniqueInstanceId}
+                                  className={`${styles.reservationCard} ${
+                                    styles.coachCardInstance
+                                  } ${
+                                    !item.isEffectivelyActive
+                                      ? styles.cancelledInstance
+                                      : ""
+                                  }`}
+                                >
+                                  <h5>{item.title}</h5> <p>{timeString}</p>
+                                  <p>
+                                    Attendees: {item.attendees?.length ?? 0}/
+                                    {item.max_capacity}
+                                  </p>
+                                  {/* "View/Hide Attendees" Button */}
+                                  <button
+                                    type="button"
+                                    className={styles.btnViewAttendees}
+                                    onClick={() =>
+                                      toggleCoachClassDetails(uniqueInstanceId)
+                                    }
+                                  >
+                                    {isCurrentlyExpanded
+                                      ? "Hide Attendees"
+                                      : "View Attendees"}
+                                  </button>
+                                  {/* "Cancel/Reactivate Session" Button */}
+                                  <button
+                                    type="button"
+                                    className={
+                                      item.isCancelledThisInstance
+                                        ? styles.btnReactivate
+                                        : styles.btnCancelInstance
+                                    }
+                                    onClick={() =>
+                                      handleToggleInstanceCancellation(
+                                        item._id,
+                                        item.specificDate,
+                                        item.isCancelledThisInstance
+                                      )
+                                    }
+                                    disabled={
+                                      isLoadingThisInstance || !item.isActive
+                                    }
+                                  >
+                                    {isLoadingThisInstance
+                                      ? "Updating..."
+                                      : item.isCancelledThisInstance
+                                      ? "Reactivate"
+                                      : "Cancel Session"}
+                                  </button>
+                                  {!item.isActive && (
+                                    <p className={styles.seriesInactive}>
+                                      (Series Inactive)
+                                    </p>
+                                  )}
+                                  {/* Attendee List (conditionally rendered) */}
+                                  {isCurrentlyExpanded && (
+                                    <div className={styles.attendeeList}>
+                                      {item.attendees &&
+                                      item.attendees.length > 0 ? (
+                                        <ul>
+                                          {item.attendees.map((att) => (
+                                            <li
+                                              key={
+                                                att._id || att.id || att.email
+                                              }
+                                            >
+                                              {att.name}{" "}
+                                              {att.email && (
+                                                <span
+                                                  className={
+                                                    styles.attendeeEmail
+                                                  }
+                                                >
+                                                  ({att.email})
+                                                </span>
+                                              )}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      ) : (
+                                        <p
+                                          className={styles.noAttendeesMessage}
+                                        >
+                                          No attendees.
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className={styles.noClassesForDay}>
+                              No classes.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* User View */
+                  <div className={styles.reservationsGrid}>
+                    {scheduleData.map((item) => {
+                      let timeString = `${item.startTime} - ${item.endTime}`;
+                      try {
+                        const s = parse(item.startTime, "H:mm", new Date()),
+                          e = parse(item.endTime, "H:mm", new Date());
+                        if (!isNaN(s) && !isNaN(e))
+                          timeString = `${format(s, "h:mm a")} - ${format(
+                            e,
+                            "h:mm a"
+                          )}`;
+                      } catch (_) {}
+                      const nextOccurrenceDate = getNextDateForDay(
+                        item.dayOfWeek
+                      );
+                      const isLoadingUserAction = userDropLoading === item._id;
+                      return (
+                        <div key={item._id} className={styles.reservationCard}>
+                          <h3>
+                            {nextOccurrenceDate
+                              ? format(nextOccurrenceDate, "EEEE, MMM d")
+                              : item.dayOfWeek !== undefined
+                              ? `Day ${item.dayOfWeek}`
+                              : "Date Error"}
+                          </h3>
+                          <p>
+                            {item.title}
+                            <br />
+                            {timeString}
+                          </p>
+                          <button
+                            type="button"
+                            className={styles.btnDrop}
+                            onClick={() => handleDropClass(item._id)}
+                            disabled={isLoadingUserAction}
+                          >
+                            {isLoadingUserAction ? "Dropping..." : "Drop"}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                <p className={styles.noReservations}>
+                  No{" "}
+                  {userRole === "coach"
+                    ? "classes this week"
+                    : "upcoming reservations"}
+                  .
+                </p>
+              ))}
             <div className={styles.actions}>
-              <button type="button" className={styles.btn} onClick={handleToggleScheduleView}>View Dashboard</button>
+              <button
+                type="button"
+                className={styles.btn}
+                onClick={handleToggleScheduleView}
+              >
+                View Dashboard
+              </button>
             </div>
           </div>
         </div>
-        {/* ===== END BACK FACE ===== */}
       </div>
     </div>
   );

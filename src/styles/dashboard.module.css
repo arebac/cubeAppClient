@@ -330,11 +330,236 @@ body {
   font-size: 1.1em;
 }
 
+/* --- Styles for Coach's Attendee List --- */
+.attendeeList {
+  margin-top: 15px; /* Space above the list */
+  padding-top: 15px; /* Space inside, above the ul */
+  border-top: 1px dashed rgba(255, 255, 255, 0.3); /* Separator line, using a dashboard-like color */
+  text-align: left; /* Align text to the left within this block */
+  max-height: 200px; /* Set a max height, list will scroll if content exceeds this */
+  overflow-y: auto;  /* Enable vertical scrolling */
+  background-color: rgba(0, 0, 0, 0.15); /* Slightly darker inset background, subtle */
+  border-radius: 6px; /* Rounded corners for the list block */
+  padding: 10px 15px; /* Padding inside the list block */
+  color: #f0f0f0; /* Lighter text color for attendee names */
+}
+
+/* Styling for the UL element itself (if needed, often fine with defaults) */
+.attendeeList ul {
+  list-style: none; /* Remove default bullet points */
+  padding: 0;
+  margin: 0;
+}
+
+/* Styling for each LI (list item - an individual attendee) */
+.attendeeList li {
+  padding: 8px 0; /* Vertical padding for each attendee item */
+  font-size: 0.9rem; /* Slightly smaller font for list items */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Subtle separator between attendees */
+  display: flex; /* Allows for better alignment if you add icons or more complex layouts */
+  justify-content: space-between; /* Example: if you add an action button per attendee later */
+  align-items: center;
+}
+
+/* Remove border from the last list item */
+.attendeeList li:last-child {
+  border-bottom: none;
+}
+
+/* Styling for the attendee's email span */
+.attendeeEmail {
+  font-size: 0.85rem; /* Make email slightly smaller */
+  color: #ccc; /* Dimmer color for the email */
+  margin-left: 8px; /* Space between name and email */
+  font-style: italic; /* Optional: italicize email */
+}
+
+/* Message for when there are no attendees */
+.noAttendeesMessage { /* You'll need to add this class to the <p> tag for no attendees */
+  padding: 15px 0;
+  text-align: center;
+  font-style: italic;
+  color: #aaa; /* Dimmed color for the message */
+  font-size: 0.9rem;
+}
+
+
+/* --- Scrollbar Styling (Optional, for better aesthetics) --- */
+/* Works in WebKit browsers (Chrome, Safari, Edge) and Firefox (with different properties) */
+.attendeeList::-webkit-scrollbar {
+  width: 8px;
+}
+
+.attendeeList::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1); /* Track color, subtle */
+  border-radius: 10px;
+}
+
+.attendeeList::-webkit-scrollbar-thumb {
+  background-color: #5c4d3d; /* Scrollbar thumb color, matches your .btn:hover */
+  border-radius: 10px;
+  border: 2px solid rgba(0, 0, 0, 0); /* Creates padding around thumb */
+  background-clip: padding-box; /* Ensures border doesn't overlap thumb */
+}
+
+.attendeeList::-webkit-scrollbar-thumb:hover {
+  background-color: #7a6a5a; /* Darker on hover */
+}
+
+/* For Firefox */
+.attendeeList {
+  scrollbar-width: thin; /* "auto" or "thin" */
+  scrollbar-color: #5c4d3d rgba(0, 0, 0, 0.1); /* thumb and track color */
+}
+
+/* --- Styles for Coach's Weekly Schedule View --- */
+.weekNavigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btnNav { /* Style for Prev/Next Week buttons */
+  background-color: #5c4d3d; /* Match other button hover */
+  color: white;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btnNav:hover {
+  background-color: #7a6a5a;
+}
+.btnNav:disabled {
+  background-color: #444;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.weeklyScheduleGrid {
+  display: grid;
+  /* For larger screens, you might want more columns:
+     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); */
+  grid-template-columns: 1fr; /* Default to 1 column for mobile-first */
+  gap: 15px;
+  max-height: 60vh; /* Or your desired scrollable height for the whole week */
+  overflow-y: auto; /* Scroll the grid if content exceeds max-height */
+  padding-right: 5px; /* Space for scrollbar */
+}
+
+.dayColumn {
+  background-color: rgba(0,0,0,0.1);
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.dayHeader {
+  color: #E0A900; /* Your theme yellow */
+  font-size: 1.1rem;
+  margin-top: 0;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(224, 169, 0, 0.5); /* Yellowish border */
+}
+
+.coachCardInstance { /* Styling for individual class instances in the week view */
+  /* Inherits from .reservationCard .coachCard but can have overrides */
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #3b2e20; /* Darker background like other cards */
+}
+.coachCardInstance h5 { /* Title of the class instance */
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  color: #E0A900; /* Yellow */
+}
+.coachCardInstance p {
+  font-size: 0.85rem;
+  margin: 3px 0;
+  color: #eee;
+}
+
+.cancelledInstance {
+  opacity: 0.6;
+  background-color: #444 !important; /* Darker grey if cancelled */
+  border-left: 3px solid #ff8a8a; /* Reddish border to indicate cancelled */
+}
+.cancelledInstance h5, .cancelledInstance p {
+  text-decoration: line-through;
+  color: #aaa !important;
+}
+
+.btnCancelInstance, .btnReactivate { /* Common styles for these buttons */
+  display: block; /* Make button take full width of its container */
+  width: 100%;
+  margin-top: 10px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  font-weight: bold;
+}
+
+.btnCancelInstance {
+  background-color: #d9534f; /* Red */
+  color: white;
+  border: 1px solid #c9302c;
+}
+.btnCancelInstance:hover:not(:disabled) {
+  background-color: #c9302c;
+}
+
+.btnReactivate {
+  background-color: #5cb85c; /* Green */
+  color: white;
+  border: 1px solid #4cae4c;
+}
+.btnReactivate:hover:not(:disabled) {
+  background-color: #4cae4c;
+}
+
+.btnCancelInstance:disabled, .btnReactivate:disabled {
+  background-color: #555;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.seriesInactive {
+  font-size: 0.75rem;
+  color: #ffc107; /* Warning yellow */
+  font-style: italic;
+  margin-top: 5px;
+  text-align: center;
+}
+
+.noClassesForDay {
+  font-size: 0.85rem;
+  color: #888;
+  text-align: center;
+  padding: 10px 0;
+  font-style: italic;
+}
+
+/* Scrollbar styling for weeklyScheduleGrid (similar to attendeeList) */
+.weeklyScheduleGrid::-webkit-scrollbar { width: 8px; }
+.weeklyScheduleGrid::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
+.weeklyScheduleGrid::-webkit-scrollbar-thumb { background-color: #5c4d3d; border-radius: 10px; border: 2px solid rgba(0,0,0,0); background-clip: padding-box; }
+.weeklyScheduleGrid::-webkit-scrollbar-thumb:hover { background-color: #7a6a5a; }
+.weeklyScheduleGrid { scrollbar-width: thin; scrollbar-color: #5c4d3d rgba(0,0,0,0.1); }
+
 /* 🔥 Responsive for Mobile */
 @media (max-width: 768px) {
   .container {
-    padding: 15px 10px;
-    padding-top: 70px; /* Mobile navbar height */
+    
+    padding: 20px 15px;
+    padding-top: 100px; /* Mobile navbar height */
     align-items: stretch;
     justify-content: flex-start;
   }
@@ -416,4 +641,8 @@ body {
     flex-wrap: wrap;
     justify-content: center;
   }
+
+  .weeklyScheduleGrid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* More columns on wider screens */
+}
 }
