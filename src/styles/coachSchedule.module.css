@@ -1,0 +1,253 @@
+.pageTitle { /* Assuming you use this class for the "My Weekly Schedule" title */
+  font-size: 2rem;  /* Match other page titles if any */
+  color: #E0A900;   /* Your theme yellow */
+  text-align: center;
+  margin-bottom: 10px; /* Space below title */
+}
+
+.pageSubtitle { /* For text like "Manage your upcoming classes" */
+  font-size: 1rem;
+  color: #ccc;
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 30px;
+}
+
+.weekNavigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.05); /* Subtle background for nav bar */
+  border-radius: 8px;
+}
+
+.btnNav { /* Already styled in dashboard, ensure it fits here */
+  background-color: #3B2E20; /* Darker button background */
+  color: white;
+  padding: 8px 15px;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btnNav:hover:not(:disabled) {
+  background-color: #5c4d3d; /* Lighter on hover */
+}
+.btnNav:disabled {
+  background-color: #2a2a2a;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.weekDisplay { /* For the "MMM d - MMM d, yyyy" text */
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #E0A900; /* Theme yellow */
+}
+
+/* Container for action feedback messages (already in dashboard.module.css, ensure it works) */
+.feedbackContainer {
+  min-height: 20px; /* Reserve space even if empty */
+  margin-bottom: 15px;
+  text-align: center;
+}
+/* .successText and .errorText should already be defined */
+
+
+.weeklyScheduleGrid {
+  display: grid;
+  grid-template-columns: 1fr; /* Mobile-first: one column */
+  gap: 20px; /* Gap between day columns */
+  /* max-height: 70vh; */ /* Optional: If you want the grid itself to scroll */
+  /* overflow-y: auto; */
+}
+
+.dayColumn {
+  background-color: rgba(0,0,0, 0.1); /* Very subtle background for each day column */
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a; /* Darker border */
+  min-height: 100px; /* Ensure column has some height even if no classes */
+}
+
+.dayHeader {
+  color: #E0A900; /* Theme yellow */
+  font-size: 1.2rem;
+  margin-top: 0;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #5c4d3d; /* Accent color border */
+  text-align: center;
+}
+
+/* Styling for individual class INSTANCES in the coach's weekly view */
+.coachCardInstance {
+  background-color: #222; /* Slightly lighter than pure black for contrast */
+  color: #f0f0f0;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #333; /* Subtle border */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  /* inherits .reservationCard structure if that class is also applied */
+}
+
+.coachCardInstance h5 { /* Title of the class instance */
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  color: #E0A900; /* Theme yellow */
+  font-weight: bold;
+}
+.coachCardInstance p {
+  font-size: 0.9rem;
+  margin: 4px 0;
+  line-height: 1.4;
+}
+.coachCardInstance .attendeeCount { /* If you re-use .attendeeCount class */
+    font-size: 0.85rem;
+    color: #bbb;
+    margin-top: 8px;
+}
+
+/* Style for instances that are cancelled */
+.cancelledInstance {
+  opacity: 0.5;
+  background-color: #303030 !important; /* Darker grey, ensure it overrides */
+  border-left: 4px solid #d9534f; /* Red accent for cancelled */
+}
+.cancelledInstance h5, .cancelledInstance p {
+  text-decoration: line-through;
+  color: #999 !important;
+}
+
+/* Container for action buttons within each class instance card */
+.instanceActions {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column; /* Stack buttons vertically */
+  gap: 8px;
+}
+
+/* Button to view/hide attendees (new) */
+.btnViewAttendees {
+  background-color: #4a4a4a; /* Neutral dark grey */
+  color: white;
+  padding: 7px 10px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: bold;
+  transition: background-color 0.2s;
+  width: 100%; /* Make buttons full width within .instanceActions */
+}
+.btnViewAttendees:hover:not(:disabled) {
+  background-color: #5a5a5a;
+}
+
+/* Cancel/Reactivate buttons (re-styling if needed, or ensure existing styles apply well) */
+.btnCancelInstance, .btnReactivate {
+  padding: 7px 10px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  font-weight: bold;
+  width: 100%; /* Make buttons full width */
+  border: none; /* Remove default border if any from .btn */
+}
+
+.btnCancelInstance {
+  background-color: #d9534f; /* Red for cancel */
+  color: white;
+  border: 1px solid #c9302c; /* Darker red border */
+}
+.btnCancelInstance:hover:not(:disabled) {
+  background-color: #c9302c;
+}
+
+.btnReactivate {
+  background-color: #5cb85c; /* Green for reactivate */
+  color: white;
+  border: 1px solid #4cae4c; /* Darker green border */
+}
+.btnReactivate:hover:not(:disabled) {
+  background-color: #4cae4c;
+}
+
+/* Disabled state for action buttons */
+.btnViewAttendees:disabled,
+.btnCancelInstance:disabled,
+.btnReactivate:disabled {
+  background-color: #333 !important; /* Darker disabled background */
+  color: #777 !important;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+
+/* Message for when a recurring series is globally inactive */
+.seriesInactive {
+  font-size: 0.75rem;
+  color: #ffae42; /* Orange/amber for warning */
+  font-style: italic;
+  margin-top: 5px;
+  text-align: center;
+  display: block; /* Ensure it takes its own line */
+}
+
+/* Message if no classes scheduled for a particular day in the week view */
+.noClassesForDay {
+  font-size: 0.9rem;
+  color: #888; /* Dimmed text */
+  text-align: center;
+  padding: 20px 0;
+  font-style: italic;
+}
+
+/* Attendee list styles (you should already have these, ensure they fit) */
+.attendeeList {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  text-align: left;
+  max-height: 150px; /* Max height for attendee list within a card */
+  overflow-y: auto;
+  background-color: rgba(0,0,0,0.2);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #e0e0e0;
+}
+.attendeeList ul { list-style: none; padding: 0; margin: 0; }
+.attendeeList li {
+  padding: 6px 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.attendeeList li:last-child { border-bottom: none; }
+.attendeeEmail { font-size: 0.8rem; color: #bbb; margin-left: 5px; font-style: italic; }
+.noAttendeesMessage { /* If you use this specific class name */
+    padding: 10px 0; text-align: center; font-style: italic; color: #999; font-size: 0.85rem;
+}
+
+
+/* --- Responsive adjustments for CoachSchedulePage layout --- */
+@media (min-width: 600px) { /* Example: 2 columns for slightly wider screens */
+  .weeklyScheduleGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 992px) { /* Example: 3 columns for desktop */
+  .weeklyScheduleGrid {
+    /* You could go up to 5 columns if you want Mon-Fri side-by-side,
+       but day columns might become too narrow. Test this. */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Flexible columns */
+  }
+  .dayColumn {
+    min-height: 200px; /* Give more min height on desktop */
+  }
+}
+/* --- End of responsive adjustments --- */

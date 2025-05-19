@@ -19,7 +19,7 @@ import HomePage from "./pages/HomePage"; // Your Home page
 import SubscriptionSuccess from "./pages/SubscriptionSuccess"; // Your Subscription Success page
 import ForgotPasswordPage from "./components/ForgotPasswordPage"; // Your Forgot Password page
 import ResetPasswordPage from "./pages/ResetPasswordPage"; // Your Reset Password page
-
+import CoachSchedulePage from "./pages/CoachSchedulePage"; // Your Coach Schedule page
 // --- Protected Route Component ---
 // (This component handles the login check)
 function ProtectedRoute({
@@ -86,6 +86,16 @@ function App() {
                 {" "}
                 {/* Wraps DropIn, allows user/coach */}
                 <DropIn />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-classes" // Or /coach-schedule, /manage-schedule etc.
+            element={
+              <ProtectedRoute allowedRoles={["coach", "admin"]}>
+                {" "}
+                {/* Protect for coach/admin */}
+                <CoachSchedulePage />
               </ProtectedRoute>
             }
           />
