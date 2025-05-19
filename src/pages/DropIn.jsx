@@ -34,7 +34,7 @@ const DropIn = () => {
       setAvailableClasses(data);
     } catch (err) { console.error("❌ Could not fetch classes:", err); setFetchError(`Failed to load classes: ${err.message}`); setAvailableClasses([]); }
     finally { setIsFetchingClasses(false); }
-  };w
+  };
 
   // Select Date (Keep as is)
   const handleSelectDate = (date) => {
