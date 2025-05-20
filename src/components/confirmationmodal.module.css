@@ -1,0 +1,172 @@
+/* src/styles/confirmation.module.css */
+
+/* src/styles/confirmation.module.css */
+.modalOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* <<<<<<<<<<<<<<<< PROBLEM FOR CENTERING */
+  z-index: 1050;
+  padding: 15px;
+  padding-top: 10vh;     /* <<<<<<<<<<<<<<<< PROBLEM FOR CENTERING */
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modalContent { /* This is the main styled box of your ConfirmationModal */
+  background-color: #1c1c1c; /* Dark background matching VIP card (from your menu modal) */
+  color: white;
+  width: 90%;                /* Relative width */
+  max-width: 450px;          /* Max width for the modal (adjust from 400px if needed) */
+  max-height: 80vh;          /* Max height relative to viewport */
+  overflow-y: auto;          /* Allow scrolling inside if content overflows */
+  position: relative;          /* For potential absolute elements inside (like a close button) */
+  border: 2px solid #E0A900; /* Yellow border (from your menu modal) */
+  border-radius: 10px;       /* Rounded corners */
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  animation: scaleIn 0.3s ease-out; /* Your scaleIn animation */
+  display: flex;
+  flex-direction: column;
+  padding: 20px 25px; /* Add padding inside the content box for its children */
+}
+
+/* Optional scale-in animation (same as your menu modal) */
+@keyframes scaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #4a4a4a; /* Consistent border color */
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #E0A900;    /* Theme yellow */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modalTitleIcon {
+  font-size: 1.2em;
+  color: #ffae42;  /* Amber/warning color for default icon */
+}
+
+.modalCloseButton {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.6rem;
+  cursor: pointer;
+  padding: 0; /* Minimal padding */
+  line-height: 0.8;
+  transition: color 0.2s ease;
+}
+.modalCloseButton:hover {
+  color: #ffffff;
+}
+
+.modalBody {
+  margin-bottom: 25px;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #d0d0d0;
+}
+.modalBody p {
+  margin: 0 0 10px 0;
+}
+.modalBody p:last-child {
+  margin-bottom: 0;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid #4a4a4a;
+}
+
+.btnBase {
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  border: 1px solid transparent;
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 100px;
+  justify-content: center;
+}
+.btnBase:hover {
+    transform: translateY(-1px);
+}
+
+.btnCancelDialog {
+  background-color: #555;
+  color: white;
+  border-color: #666;
+}
+.btnCancelDialog:hover {
+  background-color: #656565;
+  border-color: #777;
+}
+
+.btnConfirm {
+  background-color: #E0A900;
+  color: #1c1c1c; /* Darker text for yellow button, like your modal content bg */
+  border-color: #FFDA72;
+}
+.btnConfirm:hover {
+  background-color: #ffda72;
+  border-color: #E0A900;
+}
+
+.btnConfirmDanger {
+  background-color: #d9534f;
+  color: white;
+  border-color: #c9302c;
+}
+.btnConfirmDanger:hover {
+  background-color: #c9302c;
+}
+
+/* Responsive adjustments for the modal content itself */
+@media (max-width: 480px) {
+  .modalContent {
+    padding: 20px 15px; /* Adjust padding for very small screens */
+    width: 95%; /* Slightly more width if needed */
+  }
+  .modalTitle {
+    font-size: 1.25rem;
+  }
+  .modalBody {
+    font-size: 0.9rem;
+  }
+  .modalFooter {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  .btnBase {
+    width: 100%;
+    padding: 12px 15px;
+  }
+}
+
