@@ -9,6 +9,11 @@ import {
 } from 'date-fns';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { FaExclamationTriangle, FaUndoAlt, FaChevronDown } from 'react-icons/fa'; // Added FaChevronDown
+import DBZGreeting from '../components/DBZGreeting'; // Import the new modal
+
+const YOUR_DBZ_GIF_URL = "https://media1.tenor.com/m/bWkE0Y8JaBgAAAAC/dragon-ball-super-saiyan.gif"; // <-- REPLACE THIS!
+const GREETING_DISPLAY_DURATION = 4000; // Display for 4 seconds (4000ms)
+
 
 const CoachSchedulePage = () => {
   const { user, isAuthLoading } = useAuth();
@@ -21,6 +26,7 @@ const CoachSchedulePage = () => {
   const [expandedInstanceId, setExpandedInstanceId] = useState(null);
   const [instanceActionLoading, setInstanceActionLoading] = useState(null);
   const [bulkActionLoadingDate, setBulkActionLoadingDate] = useState(null);
+  const [showDbzGreeting, setShowDbzGreeting] = useState(false);
 
   // State for Confirmation Modal
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -28,6 +34,21 @@ const CoachSchedulePage = () => {
     title: "Confirm Action", message: "Are you sure?", onConfirm: () => {},
     confirmText: "Confirm", icon: <FaExclamationTriangle className={modalStyles.modalTitleIcon} />
   });
+
+    useEffect(() => {
+    // Check if user is loaded, is a coach, and if greeting hasn't been shown this session
+    if (user && user.role === 'coach' && !sessionStorage.getItem('dbzGreetingShown')) {
+      setShowDbzGreeting(true);
+      sessionStorage.setItem('dbzGreetingShown', 'true'); // Mark as shown for this session
+
+      // Automatically close the greeting after a few seconds
+      const timer = setTimeout(() => {
+        setShowDbzGreeting(false);
+      }, GREETING_DISPLAY_DURATION);
+
+      return () => clearTimeout(timer); // Cleanup timer on component unmount or if effect re-runs
+    }
+  }, [user, isAuthLoading]); // Rerun when user or auth loading state changes
 
   // NEW: State for accordion day expansion on mobile
   const [expandedDay, setExpandedDay] = useState(null); // Stores 'YYYY-MM-DD' of expanded day
@@ -330,6 +351,11 @@ const CoachSchedulePage = () => {
         cancelText="No, Go Back"
         confirmButtonClass={confirmModalProps.confirmButtonClass}
         icon={confirmModalProps.icon}
+      />
+       <DBZGreeting
+        isOpen={showDbzGreeting}
+        onClose={() => setShowDbzGreeting(false)} // Allow manual close by clicking overlay
+        gifUrl={YOUR_DBZ_GIF_URL}
       />
     </div>
   );

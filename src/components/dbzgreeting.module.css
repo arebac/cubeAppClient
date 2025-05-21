@@ -1,0 +1,43 @@
+/* src/styles/dbzGreeting.module.css */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85); /* Darker overlay for more focus on GIF */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000; /* Make sure it's above other content, including other modals if any */
+  animation: fadeInOverlay 0.5s ease-out;
+}
+
+.modalContent {
+  padding: 10px; /* Optional padding around the GIF */
+  background-color: #111; /* Optional dark background for the GIF box */
+  border-radius: 10px;
+  box-shadow: 0 0 30px rgba(224, 169, 0, 0.7); /* DBZ Gold Aura Glow */
+  animation: zoomInContent 0.4s ease-out 0.2s; /* Delayed zoom */
+  animation-fill-mode: backwards; /* Apply start of animation before it begins */
+  max-width: 80vw; /* Max width for the GIF container */
+  max-height: 80vh; /* Max height for the GIF container */
+}
+
+.gifImage {
+  display: block;
+  max-width: 100%;
+  max-height: calc(80vh - 20px); /* Adjust if you have padding in .modalContent */
+  border-radius: 5px; /* Slight rounding for the GIF itself */
+  border: 2px solid #E0A900; /* Gold border */
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomInContent {
+  from { transform: scale(0.5) rotate(-15deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
+}
