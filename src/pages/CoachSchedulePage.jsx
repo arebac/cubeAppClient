@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import pageStyles from '../styles/coachSchedule.module.css'; // Main styles for this page
-import modalStyles from '../components/confirmationmodal.module.css'; // Styles for the confirmation modal
+import pageStyles from '../styles/coachSchedule.module.css';
+import modalStyles from '../components/confirmationmodal.module.css';
 import { useAuth } from '../context/AuthContext';
 import {
   format, parse, addDays,
@@ -8,32 +8,32 @@ import {
   getDay
 } from 'date-fns';
 import ConfirmationModal from '../components/ConfirmationModal';
-import { FaExclamationTriangle, FaUndoAlt } from 'react-icons/fa'; // Icons for modal
+import { FaExclamationTriangle, FaUndoAlt, FaChevronDown } from 'react-icons/fa'; // Added FaChevronDown
 
 const CoachSchedulePage = () => {
   const { user, isAuthLoading } = useAuth();
 
   const [weeklySchedule, setWeeklySchedule] = useState([]);
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [isLoading, setIsLoading] = useState(false); // For main schedule fetch
-  const [error, setError] = useState(null); // For fetching schedule errors
-  const [actionFeedback, setActionFeedback] = useState({ message: '', type: '' }); // For general action feedback
-  const [expandedInstanceId, setExpandedInstanceId] = useState(null); // "classId-specificDate" for attendee list
-  const [instanceActionLoading, setInstanceActionLoading] = useState(null); // { classId, specificDate } for individual cancel/reactivate
-  const [bulkActionLoadingDate, setBulkActionLoadingDate] = useState(null); // Date string for "Close/Open All Today" button
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [actionFeedback, setActionFeedback] = useState({ message: '', type: '' });
+  const [expandedInstanceId, setExpandedInstanceId] = useState(null);
+  const [instanceActionLoading, setInstanceActionLoading] = useState(null);
+  const [bulkActionLoadingDate, setBulkActionLoadingDate] = useState(null);
 
   // State for Confirmation Modal
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmModalProps, setConfirmModalProps] = useState({
-    title: "Confirm Action",
-    message: "Are you sure?",
-    onConfirm: () => {},
-    confirmText: "Confirm",
-    icon: <FaExclamationTriangle className={modalStyles.modalTitleIcon} /> // Default icon
+    title: "Confirm Action", message: "Are you sure?", onConfirm: () => {},
+    confirmText: "Confirm", icon: <FaExclamationTriangle className={modalStyles.modalTitleIcon} />
   });
 
-  // Fetch Coach's Weekly Schedule
+  // NEW: State for accordion day expansion on mobile
+  const [expandedDay, setExpandedDay] = useState(null); // Stores 'YYYY-MM-DD' of expanded day
+
   const fetchCoachWeeklySchedule = useCallback(async (weekStartDate) => {
+    // ... (your existing fetch logic - no changes needed here)
     if (!user || (user.role !== 'coach' && user.role !== 'admin')) {
       setError("Access Denied. Only coaches or admins can view this page.");
       setWeeklySchedule([]); setIsLoading(false); return;
@@ -46,7 +46,7 @@ const CoachSchedulePage = () => {
 
     console.log(`[CoachSchedulePage] Fetching schedule for week starting with: ${formatISO(weekStartDate, { representation: 'date' })}`);
     setIsLoading(true);
-    setError(null); // Clear previous fetch error
+    setError(null);
 
     const startDateParam = formatISO(weekStartDate, { representation: 'date' });
     const fetchUrl = `http://localhost:5001/api/user/coaching-schedule?startDate=${startDateParam}&view=week`;
@@ -59,8 +59,6 @@ const CoachSchedulePage = () => {
         throw new Error(eMsg);
       }
       const data = await res.json();
-      console.log("[CoachSchedulePage] Fetched weekly schedule data (count):", data.length);
-      if (data.length > 0) console.log("[CoachSchedulePage] Sample item [0].specificDate:", data[0]?.specificDate);
       setWeeklySchedule(data);
     } catch (err) {
       console.error("❌ Error fetching coach's weekly schedule:", err);
@@ -69,9 +67,8 @@ const CoachSchedulePage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user]); // Depends on user object for role and auth status
+  }, [user]);
 
-  // Effect to fetch schedule on relevant changes
   useEffect(() => {
     if (user && (user.role === 'coach' || user.role === 'admin')) {
       fetchCoachWeeklySchedule(currentWeekStart);
@@ -79,14 +76,19 @@ const CoachSchedulePage = () => {
         setError("Please log in as a coach or admin to view this page.");
         setWeeklySchedule([]);
     }
-    // Clear general (non-processing) action feedback when week/user changes
     if (actionFeedback.type !== 'info' || (actionFeedback.id && actionFeedback.id !== 'bulk_processing_info')) {
         setActionFeedback({ message: '', type: '' });
     }
-  }, [user, currentWeekStart, fetchCoachWeeklySchedule, isAuthLoading]);
+  }, [user, currentWeekStart, fetchCoachWeeklySchedule, isAuthLoading, actionFeedback.id, actionFeedback.type]); // Added dependencies
 
-  // Handler to toggle individual instance cancellation
+  // When week changes, collapse any open day accordion
+  useEffect(() => {
+    setExpandedDay(null);
+  }, [currentWeekStart]);
+
+
   const handleToggleInstanceCancellation = async (classId, specificDate, currentIsCancelledStatus) => {
+    // ... (your existing logic - no changes needed here)
     const token = localStorage.getItem("token");
     if (!token) { setActionFeedback({ message: "Authentication session missing.", type: 'error' }); return; }
 
@@ -101,7 +103,7 @@ const CoachSchedulePage = () => {
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || `Failed to update status: ${res.status}`);
       setActionFeedback({ message: result.message || "Class status updated!", type: 'success' });
-      await fetchCoachWeeklySchedule(currentWeekStart); // Refresh schedule
+      await fetchCoachWeeklySchedule(currentWeekStart);
     } catch (err) {
       setActionFeedback({ message: err.message || "Could not update class status.", type: 'error' });
     } finally {
@@ -109,8 +111,8 @@ const CoachSchedulePage = () => {
     }
   };
 
-  // Handler for Bulk Day Actions (Cancel All / Reactivate All)
   const handleBulkDayAction = (dateToModifyISO, allAreCurrentlyClosed) => {
+    // ... (your existing logic - no changes needed here)
     const actionVerb = allAreCurrentlyClosed ? "reactivate" : "cancel";
     const titleAction = allAreCurrentlyClosed ? "Reopen All Classes" : "Close All Classes";
     const messageAction = allAreCurrentlyClosed
@@ -154,19 +156,29 @@ const CoachSchedulePage = () => {
   const handleNextWeek = () => setCurrentWeekStart(prev => addDays(prev, 7));
   const toggleAttendeeList = (instanceUniqueId) => setExpandedInstanceId(prev => prev === instanceUniqueId ? null : instanceUniqueId);
 
-  // --- Render Logic ---
+  // NEW: Handler for toggling day expansion in mobile accordion
+  const handleToggleDayExpansion = (dayString) => {
+    // Prevent accordion toggle if a bulk action button within the header was clicked
+    // This check might be overly simple; event propagation might need to be stopped on the button itself.
+    // For now, let's assume direct clicks on header for expansion.
+    setExpandedDay(prevExpandedDay => (prevExpandedDay === dayString ? null : dayString));
+  };
+
   if (isAuthLoading && !user) {
     return <div className={pageStyles.container}><p className={pageStyles.loadingText}>Loading Authentication...</p></div>;
   }
   if (!user || (user.role !== 'coach' && user.role !== 'admin')) {
-    return (<div className={`${pageStyles.container} ${pageStyles.coachSchedulePageContainer}`}><h1 className={pageStyles.pageTitle}>My Weekly Schedule</h1><p className={pageStyles.errorText}>{error || "Access Denied. This page is for coaches and admins."}</p></div>);
+    return (<div className={`${pageStyles.container} ${pageStyles.coachSchedulePageContainer}`}>
+      <h1 className={pageStyles.pageTitle}>My Weekly Schedule</h1>
+      <p className={pageStyles.errorText}>{error || "Access Denied. This page is for coaches and admins."}</p>
+    </div>);
   }
 
   const allWeekDays = eachDayOfInterval({ start: currentWeekStart, end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }) });
   const weekDaysForDisplay = allWeekDays.filter(day => { const dOW = getDay(day); return dOW >= 1 && dOW <= 5; }); // Monday to Friday
 
   return (
-    <div className={`${pageStyles.container} ${pageStyles.coachSchedulePageContainer}`}>
+    <div className={pageStyles.container}>
       <h1 className={pageStyles.pageTitle}>My Weekly Schedule</h1>
       <p className={pageStyles.pageSubtitle}>Manage upcoming classes (Monday - Friday).</p>
 
@@ -176,58 +188,134 @@ const CoachSchedulePage = () => {
         <button type="button" onClick={handleNextWeek} className={pageStyles.btnNav} disabled={isLoading || !!instanceActionLoading || !!bulkActionLoadingDate}>Next </button>
       </div>
 
-      {actionFeedback.message && (<div className={`${pageStyles.feedbackContainer} ${actionFeedback.type === 'error' ? pageStyles.errorText : (actionFeedback.type === 'success' ? pageStyles.successText : pageStyles.infoText)}`}><p>{actionFeedback.message}</p></div>)}
+      {actionFeedback.message && (
+        <div className={`${pageStyles.feedbackContainer} ${
+            actionFeedback.type === 'error' ? pageStyles.errorText :
+            (actionFeedback.type === 'success' ? pageStyles.successText : pageStyles.infoText)}`}>
+          <p>{actionFeedback.message}</p>
+        </div>
+      )}
 
       {isLoading && weeklySchedule.length === 0 && !error && <p className={pageStyles.loadingText}>Loading schedule...</p>}
-      {error && <p className={pageStyles.errorText}>Error: {error}</p>}
-      {!isLoading && !error && weeklySchedule.length === 0 && (<p className={pageStyles.noReservations}>No classes found for this coach in this week.</p>)}
+      {error && <p className={`${pageStyles.errorText} ${pageStyles.feedbackContainer}`}>Error: {error}</p>}
+      {!isLoading && !error && weeklySchedule.length === 0 && user && (user.role === 'coach' || user.role === 'admin') && (
+        <p className={pageStyles.noReservations}>No classes found for this coach in this week.</p>
+      )}
 
       {weeklySchedule.length > 0 && (
-        <div className={pageStyles.weeklyScheduleGrid}>
+        // Renamed to weeklyScheduleContainer for clarity with new CSS
+        <div className={pageStyles.weeklyScheduleContainer}>
           {weekDaysForDisplay.map(day => {
             const formattedDayString = formatISO(day, { representation: 'date' });
             const classesForThisDay = weeklySchedule.filter(cls => cls.specificDate === formattedDayString);
             const allPotentiallyRunnableClassesAreClosed = classesForThisDay.length > 0 && classesForThisDay.every(cls => !cls.isEffectivelyActive);
+            const isDayCurrentlyExpanded = expandedDay === formattedDayString;
 
             return (
-              <div key={formattedDayString} className={pageStyles.dayColumn}>
-                <div className={pageStyles.dayHeaderContainer}>
+              <div
+                key={formattedDayString}
+                className={`${pageStyles.dayColumn} ${isDayCurrentlyExpanded ? pageStyles.dayExpandedMobile : ''}`}
+              >
+                <div
+                  className={pageStyles.dayHeaderContainer}
+                  onClick={(e) => {
+                    // Prevent accordion toggle if click is on the button itself
+                    if (e.target.closest('button')) return;
+                    handleToggleDayExpansion(formattedDayString);
+                  }}
+                  role="button" // For accessibility
+                  aria-expanded={isDayCurrentlyExpanded}
+                  aria-controls={`day-content-${formattedDayString}`}
+                  tabIndex={0} // Make it focusable
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleToggleDayExpansion(formattedDayString);}}
+                >
                   <h4 className={pageStyles.dayHeader}>{format(day, 'EEEE, MMM d')}</h4>
+                  {/* Bulk action button needs to stop propagation if clicked to prevent accordion toggle */}
                   {classesForThisDay.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => handleBulkDayAction(formattedDayString, allPotentiallyRunnableClassesAreClosed)}
-                      className={allPotentiallyRunnableClassesAreClosed ? pageStyles.btnOpenDay : pageStyles.btnCloseDay}
-                      disabled={isLoading || !!instanceActionLoading || bulkActionLoadingDate === formattedDayString}
-                      title={allPotentiallyRunnableClassesAreClosed ? `Reactivate all sessions for ${format(day, 'MMM d')}` : `Cancel all active sessions for ${format(day, 'MMM d')}`}
-                    >
-                      {bulkActionLoadingDate === formattedDayString ? 'Processing...' : (allPotentiallyRunnableClassesAreClosed ? 'Reopen All Today' : 'Close All Today')}
-                    </button>
+                    <div className={pageStyles.dayActionContainer}>
+                        <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation(); // Prevent accordion toggle
+                            handleBulkDayAction(formattedDayString, allPotentiallyRunnableClassesAreClosed);
+                        }}
+                        className={allPotentiallyRunnableClassesAreClosed ? pageStyles.btnOpenDay : pageStyles.btnCloseDay}
+                        disabled={isLoading || !!instanceActionLoading || bulkActionLoadingDate === formattedDayString}
+                        title={allPotentiallyRunnableClassesAreClosed ? `Reactivate all sessions for ${format(day, 'MMM d')}` : `Cancel all active sessions for ${format(day, 'MMM d')}`}
+                        >
+                        {bulkActionLoadingDate === formattedDayString ? 'Processing...' : (allPotentiallyRunnableClassesAreClosed ? 'Reopen All' : 'Close All')}
+                        </button>
+                    </div>
+                  )}
+                  <FaChevronDown className={pageStyles.dayExpansionIcon} />
+                </div>
+
+                {/* This container will be shown/hidden by CSS based on .dayExpandedMobile */}
+                <div
+                  id={`day-content-${formattedDayString}`}
+                  className={pageStyles.dayClassesContainer}
+                  aria-hidden={!isDayCurrentlyExpanded}
+                >
+                  {classesForThisDay.length > 0 ? (
+                    classesForThisDay.map(item => {
+                      let timeString = `${item.startTime} - ${item.endTime}`;
+                      try {
+                        const s = parse(item.startTime, "H:mm", new Date());
+                        const e = parse(item.endTime, "H:mm", new Date());
+                        if (!isNaN(s) && !isNaN(e)) timeString = `${format(s, 'h:mm a')} - ${format(e, 'h:mm a')}`;
+                      } catch (_) {}
+                      const instanceUniqueId = item._id + item.specificDate; // Should be class_schedule_id ideally if unique per instance
+                      const isInstanceContentExpanded = expandedInstanceId === instanceUniqueId;
+                      const isThisInstanceLoading = instanceActionLoading?.classId === item._id && instanceActionLoading?.specificDate === item.specificDate;
+                      return (
+                        <div key={instanceUniqueId} className={`${pageStyles.coachCardInstance} ${!item.isEffectivelyActive ? pageStyles.cancelledInstance : ''}`}>
+                          <h5>Class:</h5>
+                          <p>{timeString}</p>
+                          <p className={pageStyles.attendeeCount}>Attendees: {item.attendees?.length ?? 0}/{item.max_capacity}</p>
+                          {!item.isActive && <p className={pageStyles.seriesInactive}>(Recurring series is Inactive)</p>}
+
+                          <div className={pageStyles.instanceActions}>
+                            <button
+                              type="button"
+                              className={pageStyles.btnViewAttendees}
+                              onClick={() => toggleAttendeeList(instanceUniqueId)}
+                              disabled={isLoading || isThisInstanceLoading || !!bulkActionLoadingDate}
+                            >
+                              {isInstanceContentExpanded ? 'Hide' : 'View'} Attendees
+                            </button>
+                            {item.isActive && ( // Only show cancel/reactivate if series is active
+                              <button
+                                type="button"
+                                className={item.isCancelledThisInstance ? pageStyles.btnReactivate : pageStyles.btnCancelInstance}
+                                onClick={() => handleToggleInstanceCancellation(item._id, item.specificDate, item.isCancelledThisInstance)}
+                                disabled={isLoading || isThisInstanceLoading || !!bulkActionLoadingDate}
+                              >
+                                {isThisInstanceLoading ? 'Processing...' : (item.isCancelledThisInstance ? 'Reactivate' : 'Cancel Session')}
+                              </button>
+                            )}
+                          </div>
+                          {isInstanceContentExpanded && (
+                            <div className={pageStyles.attendeeList}>
+                              {(item.attendees && item.attendees.length > 0) ? (
+                                <ul>{item.attendees.map(att => (
+                                  <li key={att.user_id || att._id || att.email}> {/* Use a stable key */}
+                                    {att.name} {att.email && <span className={pageStyles.attendeeEmail}>({att.email})</span>}
+                                  </li>
+                                ))}</ul>
+                              ) : (
+                                <p className={pageStyles.noAttendeesMessage}>No attendees for this session.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className={pageStyles.noClassesForDay}>No classes scheduled for this day.</p>
                   )}
                 </div>
-                {classesForThisDay.length > 0 ? (
-                  classesForThisDay.map(item => {
-                    let timeString = `${item.startTime} - ${item.endTime}`; try {const s=parse(item.startTime,"H:mm",new Date()),e=parse(item.endTime,"H:mm",new Date()); if(!isNaN(s)&&!isNaN(e))timeString=`${format(s,'h:mm a')} - ${format(e,'h:mm a')}`;}catch(_){}
-                    const instanceUniqueId = item._id + item.specificDate;
-                    const isExpanded = expandedInstanceId === instanceUniqueId;
-                    const isThisInstanceLoading = instanceActionLoading?.classId === item._id && instanceActionLoading?.specificDate === item.specificDate;
-                    return (
-                      <div key={instanceUniqueId} className={`${pageStyles.reservationCard} ${pageStyles.coachCardInstance} ${!item.isEffectivelyActive ? pageStyles.cancelledInstance : ''}`}>
-                        <h5>{item.title}</h5><p>{timeString}</p>
-                        <p className={pageStyles.attendeeCount}>Attendees: {item.attendees?.length??0}/{item.max_capacity}</p>
-                        <div className={pageStyles.instanceActions}>
-                          <button type="button" className={pageStyles.btnViewAttendees} onClick={()=>toggleAttendeeList(instanceUniqueId)} disabled={isLoading||isThisInstanceLoading}>{isExpanded?'Hide':'View'} Attendees</button>
-                          {item.isActive && (<button type="button" className={item.isCancelledThisInstance?pageStyles.btnReactivate:pageStyles.btnCancelInstance} onClick={()=>handleToggleInstanceCancellation(item._id, item.specificDate, item.isCancelledThisInstance)} disabled={isLoading||isThisInstanceLoading}>{isThisInstanceLoading?'Processing...':(item.isCancelledThisInstance?'Reactivate':'Cancel Session')}</button>)}
-                        </div>
-                        {!item.isActive && <p className={pageStyles.seriesInactive}>(Recurring series is Inactive)</p>}
-                        {isExpanded && (<div className={pageStyles.attendeeList}>
-                            {(item.attendees && item.attendees.length > 0) ? (<ul>{item.attendees.map(att=>(<li key={att._id||att.id||att.email}>{att.name} {att.email && <span className={pageStyles.attendeeEmail}>({att.email})</span>}</li>))}</ul>)
-                            : (<p className={pageStyles.noAttendeesMessage}>No attendees for this session.</p>)}
-                        </div>)}
-                      </div>);
-                  })
-                ) : ( <p className={pageStyles.noClassesForDay}>No classes scheduled.</p> )}
-              </div>);
+              </div>
+            );
           })}
         </div>
       )}
@@ -239,10 +327,9 @@ const CoachSchedulePage = () => {
         title={confirmModalProps.title}
         message={confirmModalProps.message}
         confirmText={confirmModalProps.confirmText}
-        cancelText="No, Go Back" // Customized cancel text
+        cancelText="No, Go Back"
         confirmButtonClass={confirmModalProps.confirmButtonClass}
         icon={confirmModalProps.icon}
-        // positionStyle={confirmModalProps.positionStyle} // Removed for default centering
       />
     </div>
   );

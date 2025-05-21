@@ -1,58 +1,70 @@
+/* coachSchedule.module.css */
 
+/* === GLOBAL & MOBILE-FIRST STYLES (Accordion Active)=== */
 .container {
   display: flex;
-  flex-direction: column; /* Stack navbar (if any) and card */
-  align-items: center; /* Center card horizontally */
-  justify-content: flex-start; /* Align content (card) to the top */
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
   min-height: 100vh;
   background: black;
-  padding: 20px; /* Default padding */
-  box-sizing: border-box; /* Include padding in height calculation */
-  /* --- ADJUST THIS based on your actual Navbar height --- */
-  /* Adds space between top of viewport and the card */
-  padding-top: 80px; /* Example: Creates 80px space at the top */
-  /* --- End Navbar Adjustment --- */
+  padding: 20px; /* Default global padding */
+  box-sizing: border-box;
+  padding-top: 80px; /* Navbar space */
   perspective: 1200px;
 }
 
-/* Page Title (can reuse if you have a global .pageTitle or make specific) */
+/* Optional: Page-specific container for overrides */
+/*
+.coachSchedulePageContainer {
+  /* Add any page-specific overrides here if needed */
+/* }
+*/
+/* Example: Override default container padding on mobile for this page only */
+/*
+@media (max-width: 767px) {
+  .coachSchedulePageContainer.container { /* Be specific if overriding */
+    /* padding-left: 10px; */
+    /* padding-right: 10px; */
+  /* }
+}
+*/
+
+
 .pageTitle {
-  /* Your existing styles */
-  font-size: 2rem;
+  font-size: 1.8rem; /* Mobile */
   color: #E0A900;
   text-align: center;
-  margin-bottom: 10px;
-
-
- 
+  margin-bottom: 8px;
 }
 
 .pageSubtitle {
-  font-size: 1rem;
-  color: #bbb; /* Slightly brighter than #ccc for subtitles */
+  font-size: 0.9rem; /* Mobile */
+  color: #bbb;
   text-align: center;
   margin-top: 0;
-  margin-bottom: 30px;
-  font-weight: 300; /* Lighter font weight */
+  margin-bottom: 25px;
+  font-weight: 300;
 }
 
-/* --- Week Navigation Bar --- */
 .weekNavigation {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  padding: 12px 15px;
-  background-color: rgba(40, 40, 40, 0.7); /* Darker, slightly transparent bar */
+  margin-bottom: 20px;
+  padding: 10px 12px; /* Mobile */
+  background-color: rgba(40, 40, 40, 0.7);
   border-radius: 8px;
   border: 1px solid #333;
+  width: 100%;
+  max-width: 600px;
 }
 
-.btnNav { /* Reuses .btn concept but can be specialized */
-  background-color: #3B2E20; /* Dark brown from your .btn */
+.btnNav {
+  background-color: #3B2E20;
   color: white;
-  padding: 8px 18px; /* Slightly wider */
-  font-size: 0.9rem;
+  padding: 7px 15px; /* Mobile */
+  font-size: 0.85rem; /* Mobile */
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -60,7 +72,7 @@
   font-weight: bold;
 }
 .btnNav:hover:not(:disabled) {
-  background-color: #5c4d3d; /* Lighter brown from .btn:hover */
+  background-color: #5c4d3d;
   transform: translateY(-1px);
 }
 .btnNav:disabled {
@@ -71,319 +83,341 @@
 }
 
 .weekDisplay {
-  font-size: 1.2rem;
-  font-weight: 600; /* Semi-bold */
-  color: #E0A900; /* Theme yellow */
-  margin: 0 10px;
-  flex-grow: 1; /* Allow it to take space if buttons are small */
+  font-size: 1.1rem; /* Mobile */
+  font-weight: 600;
+  color: #E0A900;
+  margin: 0 8px;
+  flex-grow: 1;
   text-align: center;
 }
 
-/* --- Feedback Container (already defined for dashboard, ensure it's sufficient) --- */
 .feedbackContainer {
-  min-height: 20px; /* Space for messages */
+  min-height: 20px;
   margin-bottom: 15px;
   text-align: center;
+  width: 100%;
+  max-width: 600px;
 }
-/* .successText and .errorText are assumed to be globally defined or from dashboard */
+.successText { color: #5cb85c; font-weight: bold; }
+.errorText { color: #d9534f; font-weight: bold; }
+.infoText { color: #5bc0de; font-weight: bold; }
+.loadingText { color: #ccc; font-style: italic;}
+.noReservations { color: #999; text-align: center; margin-top: 20px;}
 
-/* --- Grid for Weekly Schedule --- */
-.weeklyScheduleGrid {
-  display: grid;
-  grid-template-columns: 1fr; /* Mobile-first: 1 column */
-  gap: 20px;
+/* --- MOBILE ACCORDION STYLES --- */
+.weeklyScheduleContainer { /* Mobile: Flex column for accordion items */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 15px;
   width: 100%;
-  /* If the page itself scrolls, no max-height needed here */
+  max-width: 1800px;
 }
 
-.dayColumn {
-  background-color: rgba(20, 20, 20, 0.5); /* Darker, more transparent day column */
-  padding: 15px;
+.dayColumn { /* Mobile: Wrapper for each accordion item */
+  background-color: rgba(20, 20, 20, 0.5);
   border-radius: 8px;
-  border: 1px solid #2c2c2c; /* Slightly visible border */
-  min-height: 120px; /* So empty days still have some presence */
+  border: 1px solid #2c2c2c;
+  overflow: hidden;
 }
 
-.dayHeader {
-  color: #E0A900;
-  font-size: 1.25rem; /* Prominent day header */
-  font-weight: 600;
-  margin-top: 0;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #5c4d3d; /* Accent color border */
-  text-align: center;
-}
-
-/* --- Individual Class Instance Card for Coach --- */
-/* This can leverage .reservationCard and .coachCard from dashboard if applicable,
-   or be styled independently. Let's assume some inheritance for consistency. */
-.coachCardInstance {
-  /* Apply .reservationCard and .coachCard styles as a base in JSX if desired,
-     then .coachCardInstance can provide overrides or additional styles. */
-  background-color: #2c2c2c; /* Dark card background */
-  color: #e0e0e0;
-  padding: 12px 15px;
-  border-radius: 6px;
-  margin-bottom: 12px; /* Space between classes in a day */
-  border: 1px solid #404040; /* Slightly more visible border */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-}
-
-.coachCardInstance h5 { /* Title */
-  margin: 0 0 8px 0;
-  font-size: 1.05rem;
-  color: #E0A900; /* Theme yellow */
-  font-weight: bold;
-}
-.coachCardInstance p { /* General text like time */
-  font-size: 0.9rem;
-  margin: 4px 0;
-  line-height: 1.5;
-}
-.coachCardInstance .attendeeCount { /* If you reuse this class from dashboard */
-    font-size: 0.85rem;
-    color: #b0b0b0; /* Slightly brighter than #bbb */
-    margin-top: 8px;
-    margin-bottom: 10px;
-}
-
-/* Style for instances that are cancelled */
-.cancelledInstance {
-  opacity: 0.55; /* Slightly less opaque */
-  background-color: #3a3a3a !important; /* Darker, distinct grey */
-  border-left: 4px solid #d9534f; /* Red accent */
-}
-.cancelledInstance h5, .cancelledInstance p {
-  text-decoration: line-through;
-  color: #909090 !important; /* Lighter than pure #888 for readability */
-}
-
-/* Container for action buttons within each class instance card */
-.instanceActions {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column; /* Stack buttons on small screens */
-  gap: 10px; /* Space between buttons */
-}
-
-/* Button to view/hide attendees */
-.btnViewAttendees {
-  background-color: #4a4a4a; /* Dark grey */
-  color: white;
-  padding: 8px 12px; /* Consistent padding */
-  border: 1px solid #585858;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.85rem; /* Consistent small button size */
-  font-weight: bold;
-  transition: background-color 0.2s;
-  text-align: center;
-}
-.btnViewAttendees:hover:not(:disabled) {
-  background-color: #5f5f5f;
-}
-
-/* Cancel/Reactivate buttons */
-.btnCancelInstance, .btnReactivate {
-  padding: 8px 12px; /* Consistent padding */
-  font-size: 0.85rem; /* Consistent small button size */
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  font-weight: bold;
-  text-align: center;
-  border: none; /* Remove default border if any from .btn base */
-}
-.btnCancelInstance { background-color: #d9534f; color: white; border: 1px solid #c9302c;}
-.btnCancelInstance:hover:not(:disabled) { background-color: #c9302c; }
-.btnReactivate { background-color: #5cb85c; color: white; border: 1px solid #4cae4c;}
-.btnReactivate:hover:not(:disabled) { background-color: #4cae4c; }
-
-.btnViewAttendees:disabled,
-.btnCancelInstance:disabled,
-.btnReactivate:disabled {
-  background-color: #303030 !important; /* Even darker for disabled */
-  color: #666 !important;
-  cursor: not-allowed;
-  opacity: 0.5;
-  border-color: #404040 !important;
-}
-
-/* Message for a recurring series that is globally inactive */
-.seriesInactive {
-  font-size: 0.8rem; /* Consistent small italic */
-  color: #ffae42; /* Amber/orange */
-  font-style: italic;
-  margin-top: 6px;
-  text-align: center;
-  display: block;
-}
-
-/* Message if no classes scheduled for a particular day */
-.noClassesForDay {
-  font-size: 0.9rem;
-  color: #999; /* Dimmed text */
-  text-align: center;
-  padding: 20px 10px; /* Add some padding */
-  font-style: italic;
-}
-
-/* Attendee list styles (copied from dashboard, ensure consistency) */
-.attendeeList {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed rgba(255, 255, 255, 0.25);
-  text-align: left;
-  max-height: 160px; /* Adjusted max height */
-  overflow-y: auto;
-  background-color: rgba(0,0,0,0.25); /* Slightly more prominent inset */
-  border-radius: 4px;
-  padding: 10px 15px;
-  color: #e0e0e0;
-}
-.attendeeList ul { list-style: none; padding: 0; margin: 0; }
-.attendeeList li { padding: 7px 0; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.attendeeList li:last-child { border-bottom: none; }
-.attendeeEmail { font-size: 0.8rem; color: #bdbdbd; margin-left: 6px; font-style: italic; }
-.noAttendeesMessage { padding: 10px 0; text-align: center; font-style: italic; color: #a0a0a0; font-size: 0.9rem; }
-
-
-/* --- Responsive adjustments for CoachSchedulePage layout --- */
-@media (min-width: 600px) {
-
-
-  .weeklyScheduleGrid {
-    grid-template-columns: repeat(2, 1fr); /* 2 columns for medium screens */
-  }
-  .instanceActions {
-     flex-direction: row; /* Buttons side-by-side */
-     justify-content: space-between; /* Or space-around */
-  }
-  .btnViewAttendees, .btnCancelInstance, .btnReactivate {
-      width: auto; /* Allow them to size by content */
-      flex-grow: 1; /* Distribute space if needed */
-      margin: 0 4px; /* Small margin between them */
-  }
-  .btnViewAttendees:first-child, .btnCancelInstance:first-child, .btnReactivate:first-child { margin-left: 0;}
-  .btnViewAttendees:last-child, .btnCancelInstance:last-child, .btnReactivate:last-child { margin-right: 0;}
-}
-
-@media (min-width: 992px) {
-  .pageTitle {
-  /* Your existing styles */
-  font-size: 2rem;
-  color: #E0A900;
-  text-align: center;
-  margin-bottom: 10px;
-  
-
- 
-}
-  .weeklyScheduleGrid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Flexible columns, 3-4 on large screens */
-  }
-}
-
-/* Optional: If CoachSchedulePage uses a different main container class than .container */
-/*
-@media (max-width: 768px) {
-  .coachSchedulePageContainer { // Example specific wrapper
-     padding-left: 10px;
-     padding-right: 10px;
-  }
-}
-*/
-
-/* === END STYLES FOR COACH SCHEDULE PAGE === */
-.dayHeaderContainer {
+.dayHeaderContainer { /* Mobile: Clickable accordion header */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px; /* Or adjust based on your dayHeader margin */
-}
-
-.dayHeader {
-  /* Keep your existing styles, but maybe reduce margin-bottom if button is below */
-  margin-bottom: 0; /* If button is on the same line */
-  flex-grow: 1; /* Allow header to take space */
-}
-
-.btnCloseDay {
-  background-color: #757575; /* Neutral, less prominent than cancel instance */
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  font-size: 0.75rem;
-  border-radius: 4px;
+  padding: 12px 15px;
   cursor: pointer;
   transition: background-color 0.2s;
-  white-space: nowrap; /* Prevent wrapping */
-  margin-left: 10px; /* Space from day header if on same line */
 }
-.btnCloseDay:hover:not(:disabled) {
-  background-color: #616161;
+.dayColumn.dayExpandedMobile .dayHeaderContainer {
+  background-color: rgba(35, 35, 35, 0.6);
 }
-.btnCloseDay:disabled {
-  background-color: #424242;
-  color: #888;
-  cursor: not-allowed;
+.dayHeaderContainer:hover {
+  background-color: rgba(45, 45, 45, 0.65);
 }
 
-.allDayClosedMessage {
-    font-size: 0.8rem;
-    color: #888;
-    font-style: italic;
-    text-align: right; /* Or center, depending on placement with header */
+.dayHeader { /* Mobile: Day name text */
+  color: #E0A900;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.dayExpansionIcon { /* Mobile: Chevron icon */
+  margin-left: 10px;
+  color: #E0A900;
+  transition: transform 0.3s ease-out;
+}
+.dayColumn.dayExpandedMobile .dayExpansionIcon {
+  transform: rotate(180deg);
+}
+
+.dayActionContainer {
     margin-left: 10px;
-    padding: 6px 0;
+    display: flex;
+    align-items: center;
 }
-
-/* Adjust mobile styles for .dayHeaderContainer if needed */
-@media (max-width: 480px) { /* Example breakpoint for very small screens */
-  .dayHeaderContainer {
-    flex-direction: column; /* Stack header and button */
-    align-items: flex-start; /* Align to start */
-  }
-  .dayHeader {
-    margin-bottom: 8px; /* Add space below header when stacked */
-    text-align: left; /* Align header text left */
-  }
-  .btnCloseDay, .allDayClosedMessage {
-    margin-left: 0;
-    width: 100%; /* Make button full width when stacked */
-    text-align: center;
-  }
-}
-
-.btnOpenDay { /* New style for "Reopen All Today" button */
-  background-color: #5cb85c; /* Green */
+.btnCloseDay, .btnOpenDay { /* Mobile: Button styles */
+  background-color: #757575;
   color: white;
   border: none;
-  padding: 6px 10px;
-  font-size: 0.75rem; /* Or match .btnCloseDay */
+  padding: 5px 8px;
+  font-size: 0.7rem;
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
   white-space: nowrap;
-  margin-left: 10px; /* If next to header */
 }
-.btnOpenDay:hover:not(:disabled) {
-  background-color: #4cae4c;
+.btnCloseDay:hover:not(:disabled) { background-color: #616161; }
+.btnCloseDay:disabled { background-color: #424242; color: #888; cursor: not-allowed; }
+.btnOpenDay { background-color: #5cb85c; }
+.btnOpenDay:hover:not(:disabled) { background-color: #4cae4c; }
+.btnOpenDay:disabled { background-color: #4a7d4a; color: #ccc; cursor: not-allowed; }
+
+
+.dayClassesContainer { /* Mobile: Accordion content area */
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease-in-out, padding 0.35s ease-in-out;
+  padding: 0 15px;
 }
-.btnOpenDay:disabled {
-  background-color: #4a7d4a; /* Darker green disabled */
-  color: #ccc;
-  cursor: not-allowed;
+.dayColumn.dayExpandedMobile .dayClassesContainer {
+  max-height: 2000px;
+  padding: 15px 15px 10px;
 }
 
-/* For the Confirmation Modal, if using specific success/danger styles */
-.btnConfirmSuccess { /* For a green confirm button in the modal */
-  background-color: #5cb85c;
-  color: white;
-  border-color: #4cae4c; /* From your modal.module.css or confirmation.module.css */
+/* --- SHARED STYLES (Mobile & Desktop, with minor tweaks in media queries) --- */
+/* Styles for .coachCardInstance, .instanceActions, .btnViewAttendees etc. remain largely the same as previous response */
+/* They will be upscaled in the desktop media query */
+
+.coachCardInstance {
+  background-color: #2c2c2c;
+  color: #e0e0e0;
+  padding: 15px; /* Increased padding slightly for better spacing without title */
+  border-radius: 6px;
+  margin-bottom: 12px;
+  border: 1px solid #404040;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  text-align: center; /* <<< KEY CHANGE for centering text content */
+
+  display: flex; /* Added for flex layout of children */
+  flex-direction: column; /* Stack children vertically */
+  /* align-items: center; /* Centers flex children like .instanceActions if they don't have width 100% */
 }
-.btnConfirmSuccess:hover {
-  background-color: #4cae4c;
+.coachCardInstance:last-child {
+  margin-bottom: 5px; /* Mobile accordion */
 }
+
+.coachCardInstance h5 {
+  margin: 0 0 8px 0;
+  font-size: 1.0rem; /* Mobile base */
+  color: #E0A900;
+  font-weight: bold;
+}
+.coachCardInstance p { /* General styling for p tags directly under .coachCardInstance */
+  font-size: 0.9rem; /* Base size, can be adjusted */
+  margin: 0 0 6px 0; /* Remove top margin, add some bottom margin */
+  line-height: 1.5;
+}
+.coachCardInstance > p:first-of-type { /* Using direct child selector > */
+  font-weight: 500; /* Slightly bolder for time */
+  font-size: 0.95rem; /* Slightly larger for time */
+  margin-bottom: 8px; /* Space between time and attendee count */
+  color: #f0f0f0; /* Slightly brighter if needed */
+}
+.seriesInactive { /* If you keep this message */
+  font-size: 0.75rem;
+  color: #ffae42;
+  font-style: italic;
+  margin-top: -5px; /* Pull it up a bit if title is gone */
+  margin-bottom: 10px;
+  text-align: center;
+  display: block;
+}
+.coachCardInstance .attendeeCount {
+    font-size: 0.8rem; /* Mobile base */
+    color: #b0b0b0;
+    margin-top: 8px;
+    margin-bottom: 10px;
+}
+
+.cancelledInstance { opacity: 0.6; background-color: #3a3a3a !important; border-left: 4px solid #d9534f; }
+.cancelledInstance h5, .cancelledInstance p { text-decoration: line-through; color: #999 !important; }
+
+.instanceActions {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column; /* Mobile: Stack buttons */
+  gap: 8px;
+}
+
+.btnViewAttendees, .btnCancelInstance, .btnReactivate {
+  padding: 7px 10px; /* Mobile base */
+  font-size: 0.8rem; /* Mobile base */
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: bold;
+  text-align: center;
+  border: none;
+}
+.btnViewAttendees { background-color: #4a4a4a; color: white; border: 1px solid #585858; }
+.btnViewAttendees:hover:not(:disabled) { background-color: #5f5f5f; }
+.btnCancelInstance { background-color: #d9534f; color: white; border: 1px solid #c9302c;}
+.btnCancelInstance:hover:not(:disabled) { background-color: #c9302c; }
+.btnReactivate { background-color: #5cb85c; color: white; border: 1px solid #4cae4c;}
+.btnReactivate:hover:not(:disabled) { background-color: #4cae4c; }
+.btnViewAttendees:disabled, .btnCancelInstance:disabled, .btnReactivate:disabled {
+  background-color: #303030 !important; color: #666 !important; cursor: not-allowed;
+  opacity: 0.5; border-color: #404040 !important;
+}
+
+.seriesInactive { font-size: 0.75rem; color: #ffae42; font-style: italic; margin-top: 6px; text-align: center; display: block; }
+.noClassesForDay { font-size: 0.85rem; color: #999; text-align: center; padding: 15px 10px; font-style: italic; } /* Mobile base */
+
+.attendeeList {
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.2);
+  text-align: left; max-height: 150px; overflow-y: auto; background-color: rgba(0,0,0,0.2);
+  border-radius: 4px; padding: 8px 12px; color: #e0e0e0;
+}
+.attendeeList ul { list-style: none; padding: 0; margin: 0; }
+.attendeeList li { padding: 6px 0; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.attendeeList li:last-child { border-bottom: none; }
+.attendeeEmail { font-size: 0.75rem; color: #bdbdbd; margin-left: 5px; font-style: italic; }
+.noAttendeesMessage { padding: 8px 0; text-align: center; font-style: italic; color: #a0a0a0; font-size: 0.85rem; }
+
+
+/* --- RESPONSIVE ADJUSTMENTS --- */
+
+/* Small devices (e.g., larger phones, landscape for button layout inside cards) */
+@media (min-width: 480px) {
+  .instanceActions {
+     flex-direction: row;
+     justify-content: space-around;
+     gap: 6px;
+  }
+  .btnViewAttendees, .btnCancelInstance, .btnReactivate {
+      flex-basis: 0;
+      flex-grow: 1;
+  }
+}
+
+/* ====== DESKTOP OVERRIDES - RESTORING ORIGINAL GRID LAYOUT ====== */
+/* This breakpoint (768px) activates the grid and desktop styles */
+@media (min-width: 768px) {
+  .pageTitle { font-size: 2rem; /* Original: 2rem */ margin-bottom: 10px; }
+  .pageSubtitle { font-size: 1rem; /* Original: 1rem */ margin-bottom: 30px; }
+  .weekNavigation { padding: 12px 15px; } /* Original padding */
+  .btnNav { padding: 8px 18px; font-size: 0.9rem; } /* Original padding & size */
+  .weekDisplay { font-size: 1.2rem; margin: 0 10px; } /* Original size */
+
+    .weeklyScheduleContainer { /* Desktop: Switch to Grid */
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* 2 columns for tablets */
+    gap: 20px;
+  }
+
+  .dayColumn { /* Desktop: This is the main styled grid cell for each day */
+    background-color: rgba(20, 20, 20, 0.5); /* From original CSS, matches image */
+    padding: 15px; /* Crucial for internal spacing, matches image */
+    border-radius: 8px; /* Matches image */
+    border: 1px solid #2c2c2c; /* Matches image */
+    min-height: 120px; /* Good for empty days, from original */
+    overflow: visible !important; /* Ensure no accordion clipping */
+  }
+
+
+  .dayHeaderContainer { /* Desktop: Contains header text & day action button */
+    display: flex;
+    justify-content: space-between; /* Pushes button to the right */
+    align-items: center; /* Vertical alignment for text and button */
+    padding: 0; /* Padding is handled by .dayColumn */
+    margin-bottom: 15px; /* Space between header and class list, as per original */
+    cursor: default !important; /* Not clickable for accordion */
+    background-color: transparent !important; /* Override mobile accordion hover/active */
+    border-bottom: none !important; /* Override mobile accordion styles */
+  }
+  .dayHeaderContainer:hover {
+    background-color: transparent !important; /* No hover effect */
+  }
+
+  .dayHeader { /* Desktop: Day name text styling - Target for image match */
+    color: #E0A900;
+    font-size: 1.25rem; /* Matches original prominent header */
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 0; /* Important: flex container handles spacing */
+    padding-bottom: 10px; /* Space for the border */
+    border-bottom: 1px solid #5c4d3d; /* Underline for day text, matches image */
+    text-align: center; /* Matches image */
+    flex-grow: 1; /* Allows button to sit to its right correctly */
+  }
+
+  .dayExpansionIcon { /* Desktop: Hide mobile accordion icon */
+    display: none !important;
+  }
+
+  .dayActionContainer { /* Desktop: For Close/Open Day buttons */
+    margin-left: 10px; /* Space from day header text */
+    /* Buttons inside will use desktop sizes */
+  }
+  .btnCloseDay, .btnOpenDay { /* Desktop: Button sizing */
+    padding: 6px 10px;      /* Original size */
+    font-size: 0.75rem;     /* Original size */
+  }
+
+  .dayClassesContainer { /* Desktop: Container for class cards, flows naturally */
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important; /* Padding is on .dayColumn; cards have own margin */
+    transition: none !important;
+    background-color: transparent !important; /* Override mobile accordion content bg */
+  }
+
+  /* Upscale shared elements for desktop */
+  .coachCardInstance h5 { font-size: 1.05rem; } /* Original .coachCardInstance h5 */
+  .coachCardInstance p { font-size: 0.9rem; } /* Original .coachCardInstance p */
+  .coachCardInstance .attendeeCount { font-size: 0.85rem; } /* Original .attendeeCount */
+  .coachCardInstance:last-child {
+    margin-bottom: 0; /* No extra margin for the last card in a day column on desktop */
+  }
+
+  .btnViewAttendees, .btnCancelInstance, .btnReactivate {
+    padding: 8px 12px; font-size: 0.85rem; /* Original sizes */
+  }
+  .seriesInactive { font-size: 0.8rem; } /* Original size */
+  .noClassesForDay {
+    font-size: 0.9rem; /* Original size */
+    padding: 20px 0px; /* Vertical padding only, text-align center applies */
+    /* Horizontal centering is due to text-align on this element, within the padded .dayColumn */
+  }
+  .attendeeList { max-height: 160px; padding: 10px 15px; } /* Original */
+  .attendeeList li { font-size: 0.9rem; } /* Original */
+  .attendeeEmail { font-size: 0.8rem; } /* Original */
+  .noAttendeesMessage { font-size: 0.9rem; } /* Original */
+}
+
+/* Large devices (desktops) - As per your original CSS for wider screens */
+@media (min-width: 992px) {
+  .weeklyScheduleContainer {
+    /* Flexible columns, aiming for 3-4 on large screens, matches image if viewport wide enough */
+    grid-template-columns: repeat(3, 1fr); /* 3 columns */
+
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  /* Other font sizes like .pageTitle already upscaled at 768px,
+     but you can add more specific 992px overrides if needed */
+}
+
+@media (min-width: 1200px) {
+  .weeklyScheduleContainer {
+    grid-template-columns: repeat(5, 1fr); /* <<< KEY CHANGE: Explicitly 5 columns */
+  }
+}
+/* Confirmation Modal button styles */
+.btnConfirmSuccess {
+  background-color: #5cb85c; color: white;
+  /* border-color: #4cae4c; */ /* Define in modalStyles or here if needed */
+}
+.btnConfirmSuccess:hover { background-color: #4cae4c; }

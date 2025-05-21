@@ -4,13 +4,21 @@
 .modalOverlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: rgba(0, 0, 0, 0.75); /* Transparency is key for backdrop-filter */
   display: flex;
-  justify-content: center;
-  align-items: flex-start; /* <<<<<<<<<<<<<<<< PROBLEM FOR CENTERING */
+  justify-content: center; /* Centers .modalContent horizontally */
+  align-items: flex-start; /* Aligns .modalContent to the top of the flex container (after padding) */
   z-index: 1050;
-  padding: 15px;
-  padding-top: 10vh;     /* <<<<<<<<<<<<<<<< PROBLEM FOR CENTERING */
+  padding-top: 20vh;    /* Example: Pushes .modalContent down from the top viewport edge */
+  padding-left: 15px;   /* Keeps side padding for modal content from edges */
+  padding-right: 15px;  /* Keeps side padding */
+  padding-bottom: 15px; /* Good for scrollable content and bottom spacing */
+
+  animation: fadeIn 0.3s ease-out;
+  overflow-y: auto; /* Allows scrolling IF the modal content (plus padding) exceeds viewport height */
+  overflow-x: hidden;
+  backdrop-filter: blur(5px); /* This will now blur the entire screen behind the overlay */
+
 }
 
 @keyframes fadeIn {
@@ -18,22 +26,23 @@
     to { opacity: 1; }
 }
 
-.modalContent { /* This is the main styled box of your ConfirmationModal */
-  background-color: #1c1c1c; /* Dark background matching VIP card (from your menu modal) */
+.modalContent {
+  background-color: #1c1c1c;
   color: white;
-  width: 90%;                /* Relative width */
-  max-width: 450px;          /* Max width for the modal (adjust from 400px if needed) */
-  max-height: 80vh;          /* Max height relative to viewport */
-  overflow-y: auto;          /* Allow scrolling inside if content overflows */
-  position: relative;          /* For potential absolute elements inside (like a close button) */
-  border: 2px solid #E0A900; /* Yellow border (from your menu modal) */
-  border-radius: 10px;       /* Rounded corners */
+  width: 90%;
+  max-width: 450px;
+  max-height: calc(100vh - 40vh); /* 40vh to allow for some top padding and bottom spacing */
+  max-height: 75vh; 
+  overflow-y: auto;
+  position: relative;
+  border: 2px solid #E0A900;
+  border-radius: 10px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
-  animation: scaleIn 0.3s ease-out; /* Your scaleIn animation */
+  animation: scaleIn 0.3s ease-out;
   display: flex;
   flex-direction: column;
-  padding: 20px 25px; /* Add padding inside the content box for its children */
+  padding: 20px 25px;
 }
 
 /* Optional scale-in animation (same as your menu modal) */
