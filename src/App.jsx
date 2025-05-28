@@ -20,6 +20,7 @@ import SubscriptionSuccess from "./pages/SubscriptionSuccess"; // Your Subscript
 import ForgotPasswordPage from "./components/ForgotPasswordPage"; // Your Forgot Password page
 import ResetPasswordPage from "./pages/ResetPasswordPage"; // Your Reset Password page
 import CoachSchedulePage from "./pages/CoachSchedulePage"; // Your Coach Schedule page
+import AdminMetricsPage from "./pages/AdminMetricsPage"; // Your Admin Metrics page
 // --- Protected Route Component ---
 // (This component handles the login check)
 function ProtectedRoute({
@@ -99,6 +100,13 @@ function App() {
               </ProtectedRoute>
             }
           />
+           {/* Admin Only Route */}
+           <Route path="/admin/metrics" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminMetricsPage />
+          </ProtectedRoute>
+        }
+      />
           {/* --- END PROTECTED DROP-IN ROUTE --- */}
           <Route
             path="/subscription-success" // This is the PATH part of the URL

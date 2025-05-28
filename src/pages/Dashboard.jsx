@@ -273,6 +273,10 @@ const Dashboard = () => {
               <strong>Phone:</strong> {dashboardUserData.phone || "N/A"}
             </p>
             <p>
+              <strong>Role:</strong>{" "}
+              {dashboardUserData.role|| "N/A"}
+            </p>
+            <p>
               <strong>Fitness Level:</strong>{" "}
               {dashboardUserData.fitnessLevel || "N/A"}
             </p>

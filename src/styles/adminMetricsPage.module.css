@@ -1,0 +1,140 @@
+/* src/styles/adminMetricsPage.module.css */
+.container {
+  padding: 20px;
+  background-color: #000; /* Assuming black background like other pages */
+  color: #e0e0e0;
+  min-height: calc(100vh - 80px); /* Adjust 80px based on your navbar height */
+}
+
+.loadingPage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 80px);
+  font-size: 1.2rem;
+  color: #ccc;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  color: #E0A900; /* Your gold accent */
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.errorText {
+  color: #d9534f; /* Red for errors */
+  text-align: center;
+}
+
+.errorTextSmall {
+  color: #d9534f;
+  font-size: 0.9rem;
+}
+
+/* KPI Section */
+.kpiSection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.kpiCard {
+  background-color: #1a1a1a; /* Darker card background */
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #2c2c2c;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.kpiCard h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1rem;
+  color: #aaa;
+  font-weight: 500;
+}
+
+.kpiValue {
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #E0A900; /* Gold for the value */
+  margin: 0;
+}
+
+/* Charts & Tables Section */
+.chartsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.metricGroup {
+  background-color: #161616; /* Slightly different background for group */
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #252525;
+}
+
+.metricGroup h2 {
+  font-size: 1.5rem;
+  color: #E0A900;
+  margin-top: 0;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #333;
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.chartPlaceholder {
+  background-color: #1f1f1f;
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #303030;
+  min-height: 250px; /* Give some height to placeholders */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.chartPlaceholder h3 {
+  margin-top: 0;
+  color: #ccc;
+}
+.chartPlaceholder p {
+    color: #888;
+}
+
+.tableContainer {
+  background-color: #1f1f1f;
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #303030;
+}
+.tableContainer h3 {
+    margin-top: 0;
+    color: #ccc;
+}
+
+/* Basic responsiveness for sections */
+@media (max-width: 768px) {
+  .kpiSection {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  .kpiValue {
+    font-size: 1.8rem;
+  }
+  .chartsGrid {
+    grid-template-columns: 1fr; /* Stack charts on smaller screens */
+  }
+}
