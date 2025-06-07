@@ -58,7 +58,7 @@ const Navbar = () => {
 
     // Role-specific links
     if (user.role === 'coach') {
-      loggedInLinks.push({ path: "/coach-schedule", label: "My Schedule", icon: <FaChalkboardTeacher /> });
+      loggedInLinks.push({ path: "/my-classes", label: "My Schedule", icon: <FaChalkboardTeacher /> });
     } else if (user.role === 'admin') {
       // Admin gets "Coach Schedules" (to view coach schedules) AND "Admin Metrics"
       loggedInLinks.push({ path: "/my-classes", label: "Coach Schedules", icon: <FaChalkboardTeacher /> });

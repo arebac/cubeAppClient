@@ -136,13 +136,19 @@ const ClassReservationMetrics = ({ dateRange }) => {
       <div className={styles.metricGroup}>
         <h2>Total Reservations</h2>
         {error.totalReservations && <p className={styles.errorText}>{error.totalReservations}</p>}
-        <section className={styles.kpiSection}>
+        <section
+          className={styles.kpiSection}
+          style={{ gridTemplateColumns: '1fr' }}
+        >
           <div className={styles.kpiCard}>
             <h4>Total Reservations</h4>
             <p className={styles.kpiValue}>{loading.totalReservations ? '...' : totalReservations.total}</p>
           </div>
         </section>
-        <div className={styles.chartsGrid}>
+        <div
+          className={styles.chartsGrid}
+          style={{ gridTemplateColumns: '1fr' }}
+        >
           <MetricChart
             key="total-reservations-trend"
             title="Reservations Trend"
@@ -158,7 +164,10 @@ const ClassReservationMetrics = ({ dateRange }) => {
       <div className={styles.metricGroup}>
         <h2>Most Popular Classes (Overall)</h2>
         {error.popularClasses && <p className={styles.errorText}>{error.popularClasses}</p>}
-        <div className={styles.chartsGrid}>
+        <div
+          className={styles.chartsGrid}
+          style={{ gridTemplateColumns: '1fr' }}
+        >
           <MetricChart
             key="popular-classes"
             title="Most Popular Classes"
@@ -175,12 +184,19 @@ const ClassReservationMetrics = ({ dateRange }) => {
       <div className={styles.metricGroup}>
         <h2>Most Popular Classes by Day of Week</h2>
         {error.popularByDay && <p className={styles.errorText}>{error.popularByDay}</p>}
-        <div className={styles.chartsGrid}>
+        <div
+          className={styles.chartsGrid}
+          style={{ gridTemplateColumns: '1fr' }}
+        >
           <MetricChart
             key="popular-by-day"
             title="Popular Classes by Day"
             data={popularByDayData}
-            options={{ responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true } } }}
+            options={{
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: { x: { stacked: true }, y: { stacked: true } }
+            }}
             isLoading={loading.popularByDay}
             error={error.popularByDay}
             type="bar"
@@ -192,12 +208,18 @@ const ClassReservationMetrics = ({ dateRange }) => {
       <div className={styles.metricGroup}>
         <h2>Most Popular Classes by Time Slot</h2>
         {error.popularByTime && <p className={styles.errorText}>{error.popularByTime}</p>}
-        <div className={styles.chartsGrid}>
+        <div
+          className={styles.chartsGrid}
+          style={{ gridTemplateColumns: '1fr' }}
+        >
           <MetricChart
             key="popular-by-time"
             title="Popular Classes by Time Slot"
             data={popularByTimeData}
-            options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }}
+            options={{
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } }
+            }}
             isLoading={loading.popularByTime}
             error={error.popularByTime}
             type="bar"
@@ -273,12 +295,19 @@ const ClassReservationMetrics = ({ dateRange }) => {
       <div className={styles.metricGroup}>
         <h2>Peak Times/Days - Reservation Density</h2>
         {error.peakTimes && <p className={styles.errorText}>{error.peakTimes}</p>}
-        <div className={styles.chartsGrid}>
+        <div
+          className={styles.chartsGrid}
+          style={{ gridTemplateColumns: '1fr' }}
+        >
           <MetricChart
             key="peak-times"
             title="Peak Times/Days"
             data={peakTimesData}
-            options={{ responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true } } }}
+            options={{
+              responsive: true,
+              plugins: { legend: { position: 'bottom' } },
+              scales: { x: { stacked: true }, y: { stacked: true } }
+            }}
             isLoading={loading.peakTimes}
             error={error.peakTimes}
             type="bar"
@@ -290,7 +319,10 @@ const ClassReservationMetrics = ({ dateRange }) => {
       <div className={styles.metricGroup}>
         <h2>Average Class Fill Rate</h2>
         {error.fillRate && <p className={styles.errorText}>{error.fillRate}</p>}
-        <section className={styles.kpiSection}>
+        <section
+          className={styles.kpiSection}
+          style={{ gridTemplateColumns: '1fr' }}
+        >
           <div className={styles.kpiCard}>
             <h4>Average Fill Rate</h4>
             <p className={styles.kpiValue}>

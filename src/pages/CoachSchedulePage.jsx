@@ -1,18 +1,17 @@
-// src/pages/CoachSchedulePage.jsx
 import React, { useEffect, useState, useCallback } from 'react';
 import pageStyles from '../styles/coachSchedule.module.css';
-import modalStyles from '../components/confirmationmodal.module.css'; // Ensure this path is correct
+import modalStyles from '../components/confirmationmodal.module.css';
 import { useAuth } from '../context/AuthContext';
 import {
   format, parse, addDays,
   startOfWeek, endOfWeek, eachDayOfInterval, formatISO, parseISO,
   getDay
 } from 'date-fns';
-import ConfirmationModal from '../components/ConfirmationModal'; // Ensure this path is correct
+import ConfirmationModal from '../components/ConfirmationModal';
 import { FaExclamationTriangle, FaUndoAlt, FaChevronDown } from 'react-icons/fa';
-import DBZGreeting from '../components/DBZGreeting'; // Ensure this path is correct
+import DBZGreeting from '../components/DBZGreeting';
 
-const YOUR_DBZ_GIF_URL = "https://media1.tenor.com/m/bWkE0Y8JaBgAAAAC/dragon-ball-super-saiyan.gif"; // Example
+const YOUR_DBZ_GIF_URL = "https://media1.tenor.com/m/bWkE0Y8JaBgAAAAC/dragon-ball-super-saiyan.gif";
 const GREETING_DISPLAY_DURATION = 4000;
 
 const CoachSchedulePage = () => {
@@ -24,10 +23,12 @@ const CoachSchedulePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [actionFeedback, setActionFeedback] = useState({ message: '', type: '' });
-  const [expandedInstanceId, setExpandedInstanceId] = useState(null); // For attendee list toggle
+  const [expandedInstanceId, setExpandedInstanceId] = useState(null);
   const [instanceActionLoading, setInstanceActionLoading] = useState(null);
   const [bulkActionLoadingDate, setBulkActionLoadingDate] = useState(null);
-  const [expandedDay, setExpandedDay] = useState(null); // For mobile accordion
+  const [expandedDay, setExpandedDay] = useState(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // Admin specific states
   const [availableCoaches, setAvailableCoaches] = useState([]);
@@ -57,7 +58,7 @@ const CoachSchedulePage = () => {
   // Fetch Available Coaches (for Admin)
   useEffect(() => {
     const fetchCoaches = async () => {
-        if (user && user.role === 'admin' && !isAuthLoading) { // Ensure user is loaded
+        if (user && user.role === 'admin' && !isAuthLoading) {
             setCoachesLoading(true);
             setAvailableCoaches([]);
             const token = localStorage.getItem("token");
@@ -73,7 +74,7 @@ const CoachSchedulePage = () => {
                 const data = await response.json();
                 setAvailableCoaches(data);
                 if (data.length > 0 && !selectedCoachId) {
-                    setSelectedCoachId(data[0]._id); // Auto-select first coach
+                    setSelectedCoachId(data[0]._id);
                     setViewedCoachName(data[0].name);
                 } else if (data.length === 0) {
                     setError("No coaches found in the system.");
@@ -87,91 +88,83 @@ const CoachSchedulePage = () => {
                 setCoachesLoading(false);
             }
         } else if (user && user.role === 'coach') {
-            setAvailableCoaches([]); // Clear if not admin
-            setSelectedCoachId('');   // Clear selection
-            setViewedCoachName(user.name || "Coach"); // Coach views their own
+            setAvailableCoaches([]);
+            setSelectedCoachId('');
+            setViewedCoachName(user.name || "Coach");
         }
     };
-    if (!isAuthLoading) { // Only run if auth check is complete
+    if (!isAuthLoading) {
         fetchCoaches();
     }
-  }, [user, isAuthLoading]); // Note: selectedCoachId removed to prevent loop on auto-select
+  }, [user, isAuthLoading]);
 
   // Fetch Coach's Weekly Schedule
   const fetchCoachWeeklySchedule = useCallback(async (weekStartDate, coachIdToFetch = null) => {
-    if (!user) { // Simpler guard, as role check happens next
-        setError("User not authenticated."); setIsLoading(false); return;
+    if (!user) {
+      setError("User not authenticated.");
+      setIsLoading(false);
+      return;
     }
     if (user.role !== 'coach' && user.role !== 'admin') {
-      setError("Access Denied."); setWeeklySchedule([]); setIsLoading(false); return;
+      setError("Access Denied.");
+      setIsLoading(false);
+      return;
     }
     const token = localStorage.getItem("token");
     if (!token) {
-      setError("Authentication required."); setWeeklySchedule([]); setIsLoading(false); return;
+      setError("Authentication required.");
+      setIsLoading(false);
+      return;
     }
 
     if (user.role === 'admin' && !coachIdToFetch) {
-        console.log("[CoachSchedulePage] Admin view: No coach selected. Schedule fetch skipped.");
-        setWeeklySchedule([]); // Clear schedule if no coach is selected for admin
-        // setError("Please select a coach to view their schedule."); // Optional prompt
-        setIsLoading(false);
-        return;
+      setIsLoading(false);
+      return;
     }
 
-    console.log(`[CoachSchedulePage] Fetching schedule for week: ${formatISO(weekStartDate, { representation: 'date' })}, For User/Coach ID: ${coachIdToFetch || user.id}`);
-    setIsLoading(true); setError(null); setActionFeedback({ message: '', type: '' });
+    setIsLoading(true);
+    setError(null);
+    setActionFeedback({ message: '', type: '' });
 
     const startDateParam = formatISO(weekStartDate, { representation: 'date' });
     let fetchUrl = `http://localhost:5001/api/user/coaching-schedule?startDate=${startDateParam}&view=week`;
 
     if (user.role === 'admin' && coachIdToFetch) {
-        fetchUrl += `&coachId=${coachIdToFetch}`;
+      fetchUrl += `&coachId=${coachIdToFetch}`;
     }
-    // If role is 'coach', backend uses authenticated user's ID from token.
 
     try {
       const res = await fetch(fetchUrl, { headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json(); // Always try to parse JSON
+      const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data.message || `Fetch failed: ${res.status}`);
       }
-      
-      // Backend now returns { schedule: [], viewedCoach: { id, name } }
       setWeeklySchedule(data.schedule || []);
       setViewedCoachName(data.viewedCoach?.name || (user.role === 'coach' ? (user.name || "My") : "Coach"));
-
+      setHasLoadedOnce(true);
     } catch (err) {
-      console.error("❌ Error fetching coach's weekly schedule:", err);
       setError(err.message || "Could not load schedule.");
-      setWeeklySchedule([]);
       setViewedCoachName(user.role === 'coach' ? (user.name || '') : '');
+      // Only clear schedule if it's the first load or a hard error
+      if (!hasLoadedOnce) setWeeklySchedule([]);
     } finally {
       setIsLoading(false);
     }
-  }, [user]); // user is a dependency
+  }, [user, hasLoadedOnce]);
 
   // Effect to fetch schedule data when relevant state changes
   useEffect(() => {
-    if (isAuthLoading || !user) return; // Wait for user and auth state
-
+    if (isAuthLoading || !user) return;
     if (user.role === 'coach') {
-        fetchCoachWeeklySchedule(currentWeekStart, null); // Coach fetches their own
-    } else if (user.role === 'admin' && selectedCoachId) { // Only fetch for admin if a coach IS selected
+        fetchCoachWeeklySchedule(currentWeekStart, null);
+    } else if (user.role === 'admin' && selectedCoachId) {
         fetchCoachWeeklySchedule(currentWeekStart, selectedCoachId);
     } else if (user.role === 'admin' && !selectedCoachId) {
-        // Admin, but no coach selected. Clear schedule or show prompt.
-        setWeeklySchedule([]); // Clear schedule
-        if (availableCoaches.length > 0 && !coachesLoading) {
-            // This state is handled by the coach selector UI or an error message
-        } else if (availableCoaches.length === 0 && !coachesLoading){
-            // setError("No coaches available to display schedules.");
-        }
+        setWeeklySchedule([]);
     }
   }, [user, currentWeekStart, fetchCoachWeeklySchedule, isAuthLoading, selectedCoachId, availableCoaches, coachesLoading]);
 
-
-  // Effect to collapse day accordion when week changes
   useEffect(() => { setExpandedDay(null); }, [currentWeekStart]);
 
   // Helper to refresh current schedule view
@@ -185,6 +178,16 @@ const CoachSchedulePage = () => {
     }
   }, [user, currentWeekStart, selectedCoachId, fetchCoachWeeklySchedule]);
 
+  // Optimistic update for bulk actions
+  const optimisticBulkUpdate = (dateToModifyISO, allAreCurrentlyClosed) => {
+    setWeeklySchedule(prev =>
+      prev.map(cls =>
+        cls.specificDate === dateToModifyISO
+          ? { ...cls, isEffectivelyActive: allAreCurrentlyClosed }
+          : cls
+      )
+    );
+  };
 
   const handleToggleInstanceCancellation = async (classId, specificDate, currentIsCancelledStatus) => {
     const token = localStorage.getItem("token");
@@ -224,8 +227,7 @@ const CoachSchedulePage = () => {
         if (!token) { setActionFeedback({ message: "Auth session missing.", type: 'error' }); return; }
         setBulkActionLoadingDate(dateToModifyISO);
         setActionFeedback({ message: `Processing action for ${format(parseISO(dateToModifyISO), 'MMM d')}...`, type: 'info', id: 'bulk_processing_info' });
-        
-        // Admin needs to pass coachId for bulk actions if they target a specific coach
+
         const coachIdForAction = user.role === 'admin' ? selectedCoachId : null;
         const bodyPayload = coachIdForAction ? { date: dateToModifyISO, coachId: coachIdForAction } : { date: dateToModifyISO };
 
@@ -237,7 +239,9 @@ const CoachSchedulePage = () => {
           const result = await res.json();
           if (!res.ok) throw new Error(result.message || `Failed to ${actionVerb} classes: ${res.status}`);
           setActionFeedback({ message: result.message || `All classes for the day ${actionVerb}d!`, type: 'success' });
-          refreshCurrentSchedule();
+          optimisticBulkUpdate(dateToModifyISO, allAreCurrentlyClosed);
+          // Optionally, re-fetch in the background for consistency:
+          setTimeout(refreshCurrentSchedule, 1000);
         } catch (err) { setActionFeedback({ message: err.message || `Could not ${actionVerb} classes.`, type: 'error' }); }
         finally { setBulkActionLoadingDate(null); }
       },
@@ -257,7 +261,7 @@ const CoachSchedulePage = () => {
   if (isAuthLoading && !user) {
     return <div className={pageStyles.container}><p className={pageStyles.loadingText}>Loading Session...</p></div>;
   }
-  if (!user && !isAuthLoading) { // Changed this condition slightly
+  if (!user && !isAuthLoading) {
     return (<div className={`${pageStyles.container} ${pageStyles.coachSchedulePageContainer}`}>
       <h1 className={pageStyles.pageTitle}>Schedule Viewer</h1>
       <p className={pageStyles.errorText}>Please log in to view schedules.</p>
@@ -270,8 +274,6 @@ const CoachSchedulePage = () => {
     </div>);
   }
 
-
-  // Determine page title based on role and viewed coach
   let pageDisplayTitle = "My Weekly Schedule";
   if (user) {
       if (user.role === 'coach') {
@@ -288,7 +290,6 @@ const CoachSchedulePage = () => {
           }
       }
   }
-
 
   const allWeekDays = eachDayOfInterval({ start: currentWeekStart, end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }) });
   const weekDaysForDisplay = allWeekDays.filter(day => { const dOW = getDay(day); return dOW >= 1 && dOW <= 5; });
@@ -338,7 +339,8 @@ const CoachSchedulePage = () => {
         </div>
       )}
 
-      {isLoading && <p className={pageStyles.loadingText}>Loading schedule...</p>}
+      {/* Only show loading message if we have never loaded data */}
+      {isLoading && !hasLoadedOnce && <p className={pageStyles.loadingText}>Loading schedule...</p>}
       {error && !isLoading && <p className={`${pageStyles.errorText} ${pageStyles.feedbackContainer}`}>{error}</p>}
 
       {!isLoading && !error && weeklySchedule.length === 0 && user &&
@@ -354,8 +356,7 @@ const CoachSchedulePage = () => {
         <p className={pageStyles.noReservations}>There are no coaches in the system to display schedules for.</p>
       )}
 
-
-      {weeklySchedule.length > 0 && !isLoading && !error && (
+      {weeklySchedule.length > 0 && !error && (
         <div className={pageStyles.weeklyScheduleContainer}>
           {weekDaysForDisplay.map(day => {
             const formattedDayString = formatISO(day, { representation: 'date' });
@@ -380,11 +381,11 @@ const CoachSchedulePage = () => {
                   {classesForThisDay.length > 0 ? (
                     classesForThisDay.map(item => {
                       let timeString = `${item.startTime} - ${item.endTime}`; try { const s = parse(item.startTime, "H:mm", new Date()), e = parse(item.endTime, "H:mm", new Date()); if (!isNaN(s) && !isNaN(e)) timeString = `${format(s, 'h:mm a')} - ${format(e, 'h:mm a')}`; } catch (_) {}
-                      const itemClassId = item.classId || item._id; // Use classId if present (from denormalized Reservation), else _id (from Class)
+                      const itemClassId = item.classId || item._id;
                       const instanceUniqueId = `${itemClassId}-${item.specificDate}`;
                       const isInstanceContentExpanded = expandedInstanceId === instanceUniqueId;
                       const isThisInstanceLoading = instanceActionLoading?.classId === itemClassId && instanceActionLoading?.specificDate === item.specificDate;
-                      const coachNameForDisplay = item.coach?.name; // From populated Class data
+                      const coachNameForDisplay = item.coach?.name;
 
                       return (
                         <div key={instanceUniqueId} className={`${pageStyles.coachCardInstance} ${!item.isEffectivelyActive ? pageStyles.cancelledInstance : ''}`}>
@@ -421,7 +422,10 @@ const CoachSchedulePage = () => {
         </div>
       )}
 
-      <ConfirmationModal /* ...props... */ />
+      <ConfirmationModal
+        isOpen={isConfirmModalOpen}
+        {...confirmModalProps}
+      />
       <DBZGreeting isOpen={showDbzGreeting} onClose={() => setShowDbzGreeting(false)} gifUrl={YOUR_DBZ_GIF_URL} />
     </div>
   );
