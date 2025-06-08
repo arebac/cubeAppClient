@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import styles from "../styles/dashboard.module.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { format, parse, getDay, nextDay, formatISO } from "date-fns";
+import { format, parse, parseISO } from "date-fns";
 
 const Dashboard = () => {
   const { user, logout, isAuthLoading, fetchAndUpdateUser } = useAuth();
@@ -12,34 +12,21 @@ const Dashboard = () => {
   const cardRef = useRef(null);
   const frontFaceRef = useRef(null);
   const backFaceRef = useRef(null);
-  const pageContainerRef = useRef(null); // For scrolling the main container if needed
+  const pageContainerRef = useRef(null);
 
   // --- State ---
   const [cardMinHeight, setCardMinHeight] = useState("auto");
   const [scheduleData, setScheduleData] = useState([]);
-  const [showScheduleView, setShowScheduleView] = useState(false); // false = front, true = back
+  const [showScheduleView, setShowScheduleView] = useState(false);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [actionSuccessMessage, setActionSuccessMessage] = useState(null);
   const [userDropLoading, setUserDropLoading] = useState(null);
-  const [expandedClassId, setExpandedClassId] = useState(null); // For coach viewing attendees (uses class _id)
+  const [expandedClassId, setExpandedClassId] = useState(null);
 
   const dashboardUserData = !isAuthLoading && user ? user : null;
   const userRole = dashboardUserData?.role || "user";
-
-  // --- Logging Effect ---
-  useEffect(() => {
-    console.log(
-      `Dashboard Mount/Update. AuthLoading: ${isAuthLoading}, UserID: ${dashboardUserData?._id}, Role: ${userRole}, ShowSchedule: ${showScheduleView}, CardMinHeight: ${cardMinHeight}`
-    );
-  }, [
-    isAuthLoading,
-    dashboardUserData,
-    userRole,
-    showScheduleView,
-    cardMinHeight,
-  ]);
 
   // --- Dynamic Height Calculation ---
   useEffect(() => {
@@ -64,7 +51,7 @@ const Dashboard = () => {
     userRole,
   ]);
 
-  // --- Data Fetching Logic (Simplified for Coach Today's View) ---
+  // --- Data Fetching Logic ---
   const fetchScheduleData = useCallback(
     async (isExplicitRefresh = false) => {
       if (
@@ -90,16 +77,12 @@ const Dashboard = () => {
 
       let fetchUrl;
       if (userRole === "coach") {
-        const todayDateString = formatISO(new Date(), {
-          representation: "date",
-        });
-        fetchUrl = `http://localhost:5001/api/user/coaching-schedule?date=${todayDateString}&view=day`; // Always today for coach dashboard
+        const todayDateString = format(new Date(), "yyyy-MM-dd");
+        fetchUrl = `http://localhost:5001/api/user/coaching-schedule?date=${todayDateString}&view=day`;
       } else {
-        // User
-        fetchUrl = `http://localhost:5001/api/user/my-reservations`;
+        // User: use the new endpoint!
+        fetchUrl = `http://localhost:5001/api/user/my-upcoming-reservations`;
       }
-      console.log(`Fetching schedule from: ${fetchUrl}`);
-
       try {
         const res = await fetch(fetchUrl, {
           headers: { Authorization: `Bearer ${token}` },
@@ -113,10 +96,8 @@ const Dashboard = () => {
           throw new Error(e);
         }
         const data = await res.json();
-        console.log("Fetched schedule data:", data.length, "items");
         setScheduleData(data);
       } catch (error) {
-        console.error(`❌ Error fetching ${userRole} schedule:`, error);
         setScheduleError(error.message || `Could not load schedule.`);
         setScheduleData([]);
       } finally {
@@ -129,7 +110,7 @@ const Dashboard = () => {
   // Effect to fetch data
   useEffect(() => {
     if (dashboardUserData && showScheduleView) {
-      fetchScheduleData(false); // isExplicitRefresh = false for view-driven fetch
+      fetchScheduleData(false);
     } else if (!dashboardUserData && showScheduleView) {
       setScheduleData([]);
     }
@@ -144,17 +125,11 @@ const Dashboard = () => {
     setActionSuccessMessage(null);
 
     if (currentIsShowingSchedule && !newShowScheduleView) {
-      // Flipping from BACK to FRONT
-      console.log("[ToggleView] Flipping to front face, scrolling to top.");
       window.scrollTo({ top: 0, behavior: "smooth" });
-      // if (pageContainerRef.current) {
-      //   pageContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-      // }
     }
-    // useEffect handles fetching if newShowScheduleView is true
   };
 
-  const handleDropClass = async (classId) => {
+  const handleDropClass = async (reservationId) => {
     if (
       !dashboardUserData ||
       !(dashboardUserData.id || dashboardUserData._id)
@@ -162,8 +137,8 @@ const Dashboard = () => {
       setActionError("Auth err");
       return;
     }
-    if (!classId) {
-      setActionError("Invalid class");
+    if (!reservationId) {
+      setActionError("Invalid reservation");
       return;
     }
     const tkn = localStorage.getItem("token");
@@ -171,7 +146,7 @@ const Dashboard = () => {
       setActionError("No token");
       return;
     }
-    setUserDropLoading(classId);
+    setUserDropLoading(reservationId);
     setActionError(null);
     setActionSuccessMessage(null);
     try {
@@ -181,7 +156,7 @@ const Dashboard = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${tkn}`,
         },
-        body: JSON.stringify({ classId }),
+        body: JSON.stringify({ reservationId }),
       });
       const res = await r.json();
       if (!r.ok) throw new Error(res.message || `Fail ${r.status}`);
@@ -203,20 +178,6 @@ const Dashboard = () => {
   const handleLogout = () => {
     logout();
     navigate("/");
-  };
-  const getNextDateForDay = (dayOfWeek) => {
-    if (dayOfWeek === undefined || dayOfWeek === null) return null;
-    const t = new Date(),
-      cD = getDay(t);
-    try {
-      const d = Number(dayOfWeek);
-      if (isNaN(d) || d < 0 || d > 6)
-        throw new Error(`Invalid day: ${dayOfWeek}`);
-      return cD === d ? t : nextDay(t, d);
-    } catch (e) {
-      console.error("Date calc error:", e, "Input:", dayOfWeek);
-      return null;
-    }
   };
 
   // --- Render Guards ---
@@ -242,8 +203,6 @@ const Dashboard = () => {
 
   return (
     <div className={styles.container} ref={pageContainerRef}>
-      {" "}
-      {/* Assign ref here if .container scrolls */}
       <div
         ref={cardRef}
         className={`${styles.card} ${
@@ -274,7 +233,7 @@ const Dashboard = () => {
             </p>
             <p>
               <strong>Role:</strong>{" "}
-              {dashboardUserData.role|| "N/A"}
+              {dashboardUserData.role || "N/A"}
             </p>
             <p>
               <strong>Fitness Level:</strong>{" "}
@@ -290,9 +249,15 @@ const Dashboard = () => {
                   ? "Active"
                   : dashboardUserData.currentSubscriptionStatus || "N/A"}
               </p>
-         <p><strong>Plan:</strong> {dashboardUserData.currentPlanName || "No active subscription"}</p> {/* <<< USE NEW FIELD */}
-          <p><strong>Tokens:</strong> {typeof dashboardUserData.tokens === "number" ? dashboardUserData.tokens : "N/A"}</p>
-          <p><strong>Expires:</strong> {dashboardUserData.currentSubscriptionEndDate ? format(new Date(dashboardUserData.currentSubscriptionEndDate), "PPP") : "N/A"}</p>
+              <p>
+                <strong>Plan:</strong> {dashboardUserData.currentPlanName || "No active subscription"}
+              </p>
+              <p>
+                <strong>Tokens:</strong> {typeof dashboardUserData.tokens === "number" ? dashboardUserData.tokens : "N/A"}
+              </p>
+              <p>
+                <strong>Expires:</strong> {dashboardUserData.currentSubscriptionEndDate ? format(new Date(dashboardUserData.currentSubscriptionEndDate), "PPP") : "N/A"}
+              </p>
             </div>
           )}
 
@@ -313,14 +278,13 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* ===== BACK FACE (Simplified Coach View) ===== */}
+        {/* ===== BACK FACE ===== */}
         <div
           ref={backFaceRef}
           className={`${styles.cardFace} ${styles.cardFaceBack}`}
         >
           <div className={styles.reservationsContainer}>
             <h2>{scheduleTitleText}</h2>
-            {/* Removed Week Navigation for coach from this simplified view */}
             <div className={styles.feedbackContainer}>
               {actionError && <p className={styles.errorText}>{actionError}</p>}
               {actionSuccessMessage && (
@@ -353,7 +317,7 @@ const Dashboard = () => {
                     } catch (_) {}
 
                     if (userRole === "coach") {
-                      const isCurrentlyExpanded = expandedClassId === item._id; // Expand based on class _id
+                      const isCurrentlyExpanded = expandedClassId === item._id;
                       return (
                         <div
                           key={item._id}
@@ -374,7 +338,6 @@ const Dashboard = () => {
                               ? "Hide Attendees"
                               : "View Attendees"}
                           </button>
-                          {/* Removed instance cancellation buttons */}
                           {!item.isActive && (
                             <p className={styles.seriesInactive}>
                               (Series Inactive)
@@ -405,18 +368,13 @@ const Dashboard = () => {
                         </div>
                       );
                     } else {
-                      // User View
-                      const nextOccurrenceDate = getNextDateForDay(
-                        item.dayOfWeek
-                      );
-                      const isLoadingUserAction = userDropLoading === item._id;
+                      // User View: Use reservationId as key, show classDate
+                      const isLoadingUserAction = userDropLoading === item.reservationId;
                       return (
-                        <div key={item._id} className={styles.reservationCard}>
+                        <div key={item.reservationId} className={styles.reservationCard}>
                           <h3>
-                            {nextOccurrenceDate
-                              ? format(nextOccurrenceDate, "EEEE, MMM d")
-                              : item.dayOfWeek !== undefined
-                              ? `Day ${item.dayOfWeek}`
+                            {item.classDate
+                              ? format(parseISO(item.classDate), "EEEE, MMM d")
                               : "Date Error"}
                           </h3>
                           <p>
@@ -427,7 +385,7 @@ const Dashboard = () => {
                           <button
                             type="button"
                             className={styles.btnDrop}
-                            onClick={() => handleDropClass(item._id)}
+                            onClick={() => handleDropClass(item.reservationId)}
                             disabled={isLoadingUserAction}
                           >
                             {isLoadingUserAction ? "Dropping..." : "Drop"}
@@ -464,4 +422,5 @@ const Dashboard = () => {
     </div>
   );
 };
+
 export default Dashboard;

@@ -166,13 +166,15 @@ body {
   flex-shrink: 0;
 }
 .reservationsGrid {
-  display: flex; /* Use flex column for single column list */
+  display: flex;
   flex-direction: column;
-  gap: 12px; /* Spacing between cards */
+  gap: 12px;
   padding: 5px 5px 15px 5px;
-  overflow-y: auto; /* Allow this grid area to scroll */
-  flex-grow: 1;
-  min-height: 150px; /* Ensure it takes some space */
+  overflow-y: auto;
+  /* Height for 3 cards + gaps (adjust as needed) */
+  max-height: 520px; /* ~3 cards at 150px each + gaps/padding */
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 /* Individual Reservation/Class Card Base Style */
