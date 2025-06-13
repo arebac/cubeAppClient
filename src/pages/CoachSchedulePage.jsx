@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import pageStyles from '../styles/coachSchedule.module.css';
 import modalStyles from '../components/confirmationmodal.module.css';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +12,7 @@ import { FaExclamationTriangle, FaUndoAlt, FaChevronDown } from 'react-icons/fa'
 import DBZGreeting from '../components/DBZGreeting';
 
 const YOUR_DBZ_GIF_URL = "https://media1.tenor.com/m/bWkE0Y8JaBgAAAAC/dragon-ball-super-saiyan.gif";
-const GREETING_DISPLAY_DURATION = 4000;
+const GREETING_DISPLAY_DURATION = 3000;
 
 const CoachSchedulePage = () => {
   const { user, isAuthLoading } = useAuth();
@@ -39,10 +39,17 @@ const CoachSchedulePage = () => {
   // DBZ Greeting state
   const [showDbzGreeting, setShowDbzGreeting] = useState(false);
 
+  // Ref to prevent unnecessary refetches after user actions
+  const skipNextRefetch = useRef(false);
+  const isPerformingAction = useRef(false);
+
   // Confirmation Modal state
   const [confirmModalProps, setConfirmModalProps] = useState({
-    title: "Confirm Action", message: "Are you sure?", onConfirm: () => {},
-    confirmText: "Confirm", icon: <FaExclamationTriangle className={modalStyles.modalTitleIcon} />
+    title: "Confirm Action", 
+    message: "Are you sure?", 
+    onConfirm: () => {},
+    confirmText: "Confirm", 
+    icon: <FaExclamationTriangle className={modalStyles.modalTitleIcon} />
   });
 
   // DBZ Greeting Effect
@@ -55,50 +62,63 @@ const CoachSchedulePage = () => {
     }
   }, [user, isAuthLoading]);
 
-  // Fetch Available Coaches (for Admin)
-  useEffect(() => {
-    const fetchCoaches = async () => {
-        if (user && user.role === 'admin' && !isAuthLoading) {
-            setCoachesLoading(true);
-            setAvailableCoaches([]);
-            const token = localStorage.getItem("token");
-            if (!token) { setError("Auth token missing for fetching coaches."); setCoachesLoading(false); return; }
-            try {
-                const response = await fetch('http://localhost:5001/api/user/coaches', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.message || 'Failed to fetch coaches list');
-                }
-                const data = await response.json();
-                setAvailableCoaches(data);
-                if (data.length > 0 && !selectedCoachId) {
-                    setSelectedCoachId(data[0]._id);
-                    setViewedCoachName(data[0].name);
-                } else if (data.length === 0) {
-                    setError("No coaches found in the system.");
-                    setWeeklySchedule([]);
-                }
-            } catch (err) {
-                console.error("Error fetching coaches:", err);
-                setError(`Failed to load coaches: ${err.message}`);
-                setAvailableCoaches([]);
-            } finally {
-                setCoachesLoading(false);
-            }
-        } else if (user && user.role === 'coach') {
-            setAvailableCoaches([]);
-            setSelectedCoachId('');
-            setViewedCoachName(user.name || "Coach");
-        }
-    };
-    if (!isAuthLoading) {
-        fetchCoaches();
+  // Fetch Available Coaches (for Admin) - Stable version
+  const fetchCoaches = useCallback(async () => {
+    if (!user || user.role !== 'admin' || isAuthLoading) return;
+    
+    setCoachesLoading(true);
+    setAvailableCoaches([]);
+    const token = localStorage.getItem("token");
+    
+    if (!token) { 
+      setError("Auth token missing for fetching coaches."); 
+      setCoachesLoading(false); 
+      return; 
     }
-  }, [user, isAuthLoading]);
+    
+    try {
+      const response = await fetch('http://localhost:5001/api/user/coaches', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || 'Failed to fetch coaches list');
+      }
+      
+      const data = await response.json();
+      setAvailableCoaches(data);
+      
+      if (data.length > 0 && !selectedCoachId) {
+        setSelectedCoachId(data[0]._id);
+        setViewedCoachName(data[0].name);
+      } else if (data.length === 0) {
+        setError("No coaches found in the system.");
+        setWeeklySchedule([]);
+      }
+    } catch (err) {
+      console.error("Error fetching coaches:", err);
+      setError(`Failed to load coaches: ${err.message}`);
+      setAvailableCoaches([]);
+    } finally {
+      setCoachesLoading(false);
+    }
+  }, [user, isAuthLoading, selectedCoachId]);
 
-  // Fetch Coach's Weekly Schedule
+  // Fetch coaches effect
+  useEffect(() => {
+    if (!isAuthLoading) {
+      if (user && user.role === 'admin') {
+        fetchCoaches();
+      } else if (user && user.role === 'coach') {
+        setAvailableCoaches([]);
+        setSelectedCoachId('');
+        setViewedCoachName(user.name || "Coach");
+      }
+    }
+  }, [user, isAuthLoading, fetchCoaches]);
+
+  // Fetch Coach's Weekly Schedule - Stable version
   const fetchCoachWeeklySchedule = useCallback(async (weekStartDate, coachIdToFetch = null) => {
     if (!user) {
       setError("User not authenticated.");
@@ -146,40 +166,50 @@ const CoachSchedulePage = () => {
     } catch (err) {
       setError(err.message || "Could not load schedule.");
       setViewedCoachName(user.role === 'coach' ? (user.name || '') : '');
-      // Only clear schedule if it's the first load or a hard error
       if (!hasLoadedOnce) setWeeklySchedule([]);
     } finally {
       setIsLoading(false);
     }
-  }, [user, hasLoadedOnce]);
+  }, [user]); // Only depend on user, not hasLoadedOnce
 
-  // Effect to fetch schedule data when relevant state changes
+  // Effect to fetch schedule data - Optimized to prevent unnecessary calls
   useEffect(() => {
-    if (isAuthLoading || !user) return;
-    if (user.role === 'coach') {
-        fetchCoachWeeklySchedule(currentWeekStart, null);
-    } else if (user.role === 'admin' && selectedCoachId) {
-        fetchCoachWeeklySchedule(currentWeekStart, selectedCoachId);
-    } else if (user.role === 'admin' && !selectedCoachId) {
-        setWeeklySchedule([]);
+    // Skip if we just performed an action or if we're currently performing one
+    if (skipNextRefetch.current || isPerformingAction.current) {
+      skipNextRefetch.current = false;
+      return;
     }
-  }, [user, currentWeekStart, fetchCoachWeeklySchedule, isAuthLoading, selectedCoachId, availableCoaches, coachesLoading]);
 
-  useEffect(() => { setExpandedDay(null); }, [currentWeekStart]);
+    if (isAuthLoading || !user) return;
+    
+    if (user.role === 'coach') {
+      fetchCoachWeeklySchedule(currentWeekStart, null);
+    } else if (user.role === 'admin' && selectedCoachId) {
+      fetchCoachWeeklySchedule(currentWeekStart, selectedCoachId);
+    } else if (user.role === 'admin' && !selectedCoachId) {
+      setWeeklySchedule([]);
+    }
+  }, [user, currentWeekStart, isAuthLoading, selectedCoachId, fetchCoachWeeklySchedule]);
 
-  // Helper to refresh current schedule view
+  // Clear expanded day when week changes
+  useEffect(() => { 
+    setExpandedDay(null); 
+  }, [currentWeekStart]);
+
+  // Helper to refresh current schedule view (manual refresh only)
   const refreshCurrentSchedule = useCallback(() => {
-    if (user) {
-        if (user.role === 'coach') {
-            fetchCoachWeeklySchedule(currentWeekStart, null);
-        } else if (user.role === 'admin' && selectedCoachId) {
-            fetchCoachWeeklySchedule(currentWeekStart, selectedCoachId);
-        }
+    if (user && !isPerformingAction.current) {
+      if (user.role === 'coach') {
+        fetchCoachWeeklySchedule(currentWeekStart, null);
+      } else if (user.role === 'admin' && selectedCoachId) {
+        fetchCoachWeeklySchedule(currentWeekStart, selectedCoachId);
+      }
     }
   }, [user, currentWeekStart, selectedCoachId, fetchCoachWeeklySchedule]);
 
   // Optimistic update for bulk actions
-  const optimisticBulkUpdate = (dateToModifyISO, allAreCurrentlyClosed) => {
+  const optimisticBulkUpdate = useCallback((dateToModifyISO, allAreCurrentlyClosed) => {
+    skipNextRefetch.current = true;
     setWeeklySchedule(prev =>
       prev.map(cls =>
         cls.specificDate === dateToModifyISO
@@ -187,23 +217,64 @@ const CoachSchedulePage = () => {
           : cls
       )
     );
-  };
+  }, []);
+
+  // Optimistic update for individual class cancellation
+  const optimisticInstanceUpdate = useCallback((classId, specificDate, newIsCancelledStatus) => {
+    skipNextRefetch.current = true;
+    setWeeklySchedule(prev =>
+      prev.map(cls => {
+        if ((cls._id === classId || cls.classId === classId) && cls.specificDate === specificDate) {
+          return {
+            ...cls,
+            isCancelledThisInstance: newIsCancelledStatus,
+            isEffectivelyActive: !newIsCancelledStatus && cls.isActive
+          };
+        }
+        return cls;
+      })
+    );
+  }, []);
 
   const handleToggleInstanceCancellation = async (classId, specificDate, currentIsCancelledStatus) => {
     const token = localStorage.getItem("token");
-    if (!token) { setActionFeedback({ message: "Authentication session missing.", type: 'error' }); return; }
-    setInstanceActionLoading({ classId, specificDate }); setActionFeedback({ message: '', type: '' });
-    const payload = { classId, date: specificDate, cancel: !currentIsCancelledStatus };
+    if (!token) { 
+      setActionFeedback({ message: "Authentication session missing.", type: 'error' }); 
+      return; 
+    }
+    
+    isPerformingAction.current = true;
+    setInstanceActionLoading({ classId, specificDate }); 
+    setActionFeedback({ message: '', type: '' });
+    
+    const newStatus = !currentIsCancelledStatus;
+    
+    // Optimistic update
+    optimisticInstanceUpdate(classId, specificDate, newStatus);
+
+    const payload = { classId, date: specificDate, cancel: newStatus };
+    
     try {
-        const res = await fetch("http://localhost:5001/api/classes/instance/toggle-cancellation", {
-            method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(payload)
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || `Failed to update status: ${res.status}`);
-        setActionFeedback({ message: result.message || "Class status updated!", type: 'success' });
-        refreshCurrentSchedule();
-    } catch (err) { setActionFeedback({ message: err.message || "Could not update class status.", type: 'error' }); }
-    finally { setInstanceActionLoading(null); }
+      const res = await fetch("http://localhost:5001/api/classes/instance/toggle-cancellation", {
+        method: "POST", 
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, 
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      
+      if (!res.ok) {
+        // Revert optimistic update on error
+        optimisticInstanceUpdate(classId, specificDate, currentIsCancelledStatus);
+        throw new Error(result.message || `Failed to update status: ${res.status}`);
+      }
+      
+      setActionFeedback({ message: result.message || "Class status updated!", type: 'success' });
+    } catch (err) { 
+      setActionFeedback({ message: err.message || "Could not update class status.", type: 'error' }); 
+    } finally { 
+      setInstanceActionLoading(null);
+      isPerformingAction.current = false;
+    }
   };
 
   const handleBulkDayAction = (dateToModifyISO, allAreCurrentlyClosed) => {
@@ -215,46 +286,100 @@ const CoachSchedulePage = () => {
     const confirmBtnText = allAreCurrentlyClosed ? "Yes, Reopen All" : "Yes, Close All";
     const confirmBtnClass = allAreCurrentlyClosed ? modalStyles.btnConfirmSuccess : modalStyles.btnConfirmDanger;
     const modalIcon = allAreCurrentlyClosed
-        ? <FaUndoAlt className={modalStyles.modalTitleIcon} style={{ color: '#5cb85c' }}/>
-        : <FaExclamationTriangle className={modalStyles.modalTitleIcon} style={{ color: '#d9534f' }} />;
+      ? <FaUndoAlt className={modalStyles.modalTitleIcon} style={{ color: '#5cb85c' }}/>
+      : <FaExclamationTriangle className={modalStyles.modalTitleIcon} style={{ color: '#d9534f' }} />;
 
     setConfirmModalProps({
-      title: `Confirm: ${titleAction}`, message: messageAction, confirmText: confirmBtnText,
-      confirmButtonClass: confirmBtnClass, icon: modalIcon,
+      title: `Confirm: ${titleAction}`, 
+      message: messageAction, 
+      confirmText: confirmBtnText,
+      confirmButtonClass: confirmBtnClass, 
+      icon: modalIcon,
       onConfirm: async () => {
         setIsConfirmModalOpen(false);
         const token = localStorage.getItem("token");
-        if (!token) { setActionFeedback({ message: "Auth session missing.", type: 'error' }); return; }
+        if (!token) { 
+          setActionFeedback({ message: "Auth session missing.", type: 'error' }); 
+          return; 
+        }
+        
+        isPerformingAction.current = true;
         setBulkActionLoadingDate(dateToModifyISO);
-        setActionFeedback({ message: `Processing action for ${format(parseISO(dateToModifyISO), 'MMM d')}...`, type: 'info', id: 'bulk_processing_info' });
+        setActionFeedback({ 
+          message: `Processing action for ${format(parseISO(dateToModifyISO), 'MMM d')}...`, 
+          type: 'info', 
+          id: 'bulk_processing_info' 
+        });
+
+        // Optimistic update
+        optimisticBulkUpdate(dateToModifyISO, allAreCurrentlyClosed);
 
         const coachIdForAction = user.role === 'admin' ? selectedCoachId : null;
-        const bodyPayload = coachIdForAction ? { date: dateToModifyISO, coachId: coachIdForAction } : { date: dateToModifyISO };
+        const bodyPayload = coachIdForAction ? 
+          { date: dateToModifyISO, coachId: coachIdForAction } : 
+          { date: dateToModifyISO };
 
         const endpoint = allAreCurrentlyClosed
           ? "http://localhost:5001/api/classes/bulk-reactivate-day"
           : "http://localhost:5001/api/classes/bulk-cancel-day";
+          
         try {
-          const res = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(bodyPayload) });
+          const res = await fetch(endpoint, { 
+            method: "POST", 
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, 
+            body: JSON.stringify(bodyPayload) 
+          });
           const result = await res.json();
-          if (!res.ok) throw new Error(result.message || `Failed to ${actionVerb} classes: ${res.status}`);
-          setActionFeedback({ message: result.message || `All classes for the day ${actionVerb}d!`, type: 'success' });
-          optimisticBulkUpdate(dateToModifyISO, allAreCurrentlyClosed);
-          // Optionally, re-fetch in the background for consistency:
-          setTimeout(refreshCurrentSchedule, 1000);
-        } catch (err) { setActionFeedback({ message: err.message || `Could not ${actionVerb} classes.`, type: 'error' }); }
-        finally { setBulkActionLoadingDate(null); }
+          
+          if (!res.ok) {
+            // Revert optimistic update on error
+            optimisticBulkUpdate(dateToModifyISO, !allAreCurrentlyClosed);
+            throw new Error(result.message || `Failed to ${actionVerb} classes: ${res.status}`);
+          }
+          
+          setActionFeedback({ 
+            message: result.message || `All classes for the day ${actionVerb}d!`, 
+            type: 'success' 
+          });
+        } catch (err) { 
+          setActionFeedback({ 
+            message: err.message || `Could not ${actionVerb} classes.`, 
+            type: 'error' 
+          }); 
+        } finally { 
+          setBulkActionLoadingDate(null);
+          isPerformingAction.current = false;
+        }
       },
       onClose: () => setIsConfirmModalOpen(false)
     });
     setIsConfirmModalOpen(true);
   };
 
-  const handlePreviousWeek = () => setCurrentWeekStart(prev => addDays(prev, -7));
-  const handleNextWeek = () => setCurrentWeekStart(prev => addDays(prev, 7));
-  const toggleAttendeeList = (instanceUniqueId) => setExpandedInstanceId(prev => prev === instanceUniqueId ? null : instanceUniqueId);
+  const handlePreviousWeek = () => {
+    skipNextRefetch.current = false;
+    setCurrentWeekStart(prev => addDays(prev, -7));
+  };
+  
+  const handleNextWeek = () => {
+    skipNextRefetch.current = false;
+    setCurrentWeekStart(prev => addDays(prev, 7));
+  };
+
+  const toggleAttendeeList = (instanceUniqueId) => {
+    setExpandedInstanceId(prev => prev === instanceUniqueId ? null : instanceUniqueId);
+  };
+
   const handleToggleDayExpansion = (dayString) => {
     setExpandedDay(prevExpandedDay => (prevExpandedDay === dayString ? null : dayString));
+  };
+
+  const handleCoachSelection = (e) => {
+    const newCoachId = e.target.value;
+    setSelectedCoachId(newCoachId);
+    const coach = availableCoaches.find(c => c._id === newCoachId);
+    setViewedCoachName(coach ? coach.name : '');
+    skipNextRefetch.current = false; // Allow refetch for coach change
   };
 
   // --- Render Guards ---
@@ -262,37 +387,47 @@ const CoachSchedulePage = () => {
     return <div className={pageStyles.container}><p className={pageStyles.loadingText}>Loading Session...</p></div>;
   }
   if (!user && !isAuthLoading) {
-    return (<div className={`${pageStyles.container} ${pageStyles.coachSchedulePageContainer}`}>
-      <h1 className={pageStyles.pageTitle}>Schedule Viewer</h1>
-      <p className={pageStyles.errorText}>Please log in to view schedules.</p>
-    </div>);
+    return (
+      <div className={`${pageStyles.container} ${pageStyles.coachSchedulePageContainer}`}>
+        <h1 className={pageStyles.pageTitle}>Schedule Viewer</h1>
+        <p className={pageStyles.errorText}>Please log in to view schedules.</p>
+      </div>
+    );
   }
   if (user.role !== 'coach' && user.role !== 'admin') {
-     return (<div className={`${pageStyles.container} ${pageStyles.coachSchedulePageContainer}`}>
-      <h1 className={pageStyles.pageTitle}>Access Denied</h1>
-      <p className={pageStyles.errorText}>You do not have permission to view this page.</p>
-    </div>);
+    return (
+      <div className={`${pageStyles.container} ${pageStyles.coachSchedulePageContainer}`}>
+        <h1 className={pageStyles.pageTitle}>Access Denied</h1>
+        <p className={pageStyles.errorText}>You do not have permission to view this page.</p>
+      </div>
+    );
   }
 
   let pageDisplayTitle = "My Weekly Schedule";
   if (user) {
-      if (user.role === 'coach') {
-          pageDisplayTitle = `${user.name || 'My'} Weekly Schedule`;
-      } else if (user.role === 'admin') {
-          if (viewedCoachName && selectedCoachId) {
-              pageDisplayTitle = `${viewedCoachName}'s Weekly Schedule`;
-          } else if (availableCoaches.length > 0 && !selectedCoachId && !coachesLoading) {
-              pageDisplayTitle = "Select a Coach to View Schedule";
-          } else if (availableCoaches.length === 0 && !coachesLoading) {
-              pageDisplayTitle = "No Coaches Available";
-          } else {
-              pageDisplayTitle = "Coach Schedule Overview";
-          }
+    if (user.role === 'coach') {
+      pageDisplayTitle = `${user.name || 'My'} Weekly Schedule`;
+    } else if (user.role === 'admin') {
+      if (viewedCoachName && selectedCoachId) {
+        pageDisplayTitle = `${viewedCoachName}'s Weekly Schedule`;
+      } else if (availableCoaches.length > 0 && !selectedCoachId && !coachesLoading) {
+        pageDisplayTitle = "Select a Coach to View Schedule";
+      } else if (availableCoaches.length === 0 && !coachesLoading) {
+        pageDisplayTitle = "No Coaches Available";
+      } else {
+        pageDisplayTitle = "Coach Schedule Overview";
       }
+    }
   }
 
-  const allWeekDays = eachDayOfInterval({ start: currentWeekStart, end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }) });
-  const weekDaysForDisplay = allWeekDays.filter(day => { const dOW = getDay(day); return dOW >= 1 && dOW <= 5; });
+  const allWeekDays = eachDayOfInterval({ 
+    start: currentWeekStart, 
+    end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }) 
+  });
+  const weekDaysForDisplay = allWeekDays.filter(day => { 
+    const dOW = getDay(day); 
+    return dOW >= 1 && dOW <= 5; 
+  });
 
   return (
     <div className={pageStyles.container}>
@@ -302,12 +437,7 @@ const CoachSchedulePage = () => {
           <select
             id="coachSelect"
             value={selectedCoachId}
-            onChange={(e) => {
-                const newCoachId = e.target.value;
-                setSelectedCoachId(newCoachId);
-                const coach = availableCoaches.find(c => c._id === newCoachId);
-                setViewedCoachName(coach ? coach.name : '');
-            }}
+            onChange={handleCoachSelection}
             className={pageStyles.coachSelect}
             disabled={coachesLoading || isLoading}
           >
@@ -326,15 +456,42 @@ const CoachSchedulePage = () => {
       <p className={pageStyles.pageSubtitle}>Manage upcoming classes (Monday - Friday).</p>
 
       <div className={pageStyles.weekNavigation}>
-        <button type="button" onClick={handlePreviousWeek} className={pageStyles.btnNav} disabled={isLoading || !!instanceActionLoading || !!bulkActionLoadingDate || (user.role === 'admin' && !selectedCoachId)}> Prev</button>
-        <h3 className={pageStyles.weekDisplay}>{format(currentWeekStart, 'MMM d')} - {format(addDays(currentWeekStart, 4), 'MMM d, yyyy')}</h3>
-        <button type="button" onClick={handleNextWeek} className={pageStyles.btnNav} disabled={isLoading || !!instanceActionLoading || !!bulkActionLoadingDate || (user.role === 'admin' && !selectedCoachId)}>Next </button>
+        <button 
+          type="button" 
+          onClick={handlePreviousWeek} 
+          className={pageStyles.btnNav} 
+          disabled={
+            isLoading || 
+            !!instanceActionLoading || 
+            !!bulkActionLoadingDate || 
+            (user.role === 'admin' && !selectedCoachId)
+          }
+        > 
+          Prev
+        </button>
+        <h3 className={pageStyles.weekDisplay}>
+          {format(currentWeekStart, 'MMM d')} - {format(addDays(currentWeekStart, 4), 'MMM d, yyyy')}
+        </h3>
+        <button 
+          type="button" 
+          onClick={handleNextWeek} 
+          className={pageStyles.btnNav} 
+          disabled={
+            isLoading || 
+            !!instanceActionLoading || 
+            !!bulkActionLoadingDate || 
+            (user.role === 'admin' && !selectedCoachId)
+          }
+        >
+          Next 
+        </button>
       </div>
 
       {actionFeedback.message && (
         <div className={`${pageStyles.feedbackContainer} ${
-            actionFeedback.type === 'error' ? pageStyles.errorText :
-            (actionFeedback.type === 'success' ? pageStyles.successText : pageStyles.infoText)}`}>
+          actionFeedback.type === 'error' ? pageStyles.errorText :
+          (actionFeedback.type === 'success' ? pageStyles.successText : pageStyles.infoText)
+        }`}>
           <p>{actionFeedback.message}</p>
         </div>
       )}
@@ -344,15 +501,15 @@ const CoachSchedulePage = () => {
       {error && !isLoading && <p className={`${pageStyles.errorText} ${pageStyles.feedbackContainer}`}>{error}</p>}
 
       {!isLoading && !error && weeklySchedule.length === 0 && user &&
-        ( (user.role === 'coach') || (user.role === 'admin' && selectedCoachId) ) && (
+        ((user.role === 'coach') || (user.role === 'admin' && selectedCoachId)) && (
         <p className={pageStyles.noReservations}>
-            No classes found for {viewedCoachName || (user.role === 'coach' ? "you" : "the selected coach")} in this week.
+          No classes found for {viewedCoachName || (user.role === 'coach' ? "you" : "the selected coach")} in this week.
         </p>
       )}
       {!isLoading && !error && user.role === 'admin' && !selectedCoachId && availableCoaches.length > 0 && !coachesLoading && (
         <p className={pageStyles.noReservations}>Please select a coach to view their schedule.</p>
       )}
-       {!isLoading && !error && user.role === 'admin' && availableCoaches.length === 0 && !coachesLoading && (
+      {!isLoading && !error && user.role === 'admin' && availableCoaches.length === 0 && !coachesLoading && (
         <p className={pageStyles.noReservations}>There are no coaches in the system to display schedules for.</p>
       )}
 
@@ -361,60 +518,142 @@ const CoachSchedulePage = () => {
           {weekDaysForDisplay.map(day => {
             const formattedDayString = formatISO(day, { representation: 'date' });
             const classesForThisDay = weeklySchedule.filter(cls => cls.specificDate === formattedDayString);
-            const allPotentiallyRunnableClassesAreClosed = classesForThisDay.length > 0 && classesForThisDay.every(cls => !cls.isEffectivelyActive);
+            const allPotentiallyRunnableClassesAreClosed = classesForThisDay.length > 0 && 
+              classesForThisDay.every(cls => !cls.isEffectivelyActive);
             const isDayCurrentlyExpanded = expandedDay === formattedDayString;
 
             return (
-              <div key={formattedDayString} className={`${pageStyles.dayColumn} ${isDayCurrentlyExpanded ? pageStyles.dayExpandedMobile : ''}`}>
-                <div className={pageStyles.dayHeaderContainer} onClick={(e) => { if (e.target.closest('button')) return; handleToggleDayExpansion(formattedDayString);}} role="button" aria-expanded={isDayCurrentlyExpanded} aria-controls={`day-content-${formattedDayString}`} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleToggleDayExpansion(formattedDayString);}}>
+              <div 
+                key={formattedDayString} 
+                className={`${pageStyles.dayColumn} ${isDayCurrentlyExpanded ? pageStyles.dayExpandedMobile : ''}`}
+              >
+                <div 
+                  className={pageStyles.dayHeaderContainer} 
+                  onClick={(e) => { 
+                    if (e.target.closest('button')) return; 
+                    handleToggleDayExpansion(formattedDayString);
+                  }} 
+                  role="button" 
+                  aria-expanded={isDayCurrentlyExpanded} 
+                  aria-controls={`day-content-${formattedDayString}`} 
+                  tabIndex={0} 
+                  onKeyDown={(e) => { 
+                    if (e.key === 'Enter' || e.key === ' ') handleToggleDayExpansion(formattedDayString);
+                  }}
+                >
                   <h4 className={pageStyles.dayHeader}>{format(day, 'EEEE, MMM d')}</h4>
                   {classesForThisDay.length > 0 && (
                     <div className={pageStyles.dayActionContainer}>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); handleBulkDayAction(formattedDayString, allPotentiallyRunnableClassesAreClosed);}} className={allPotentiallyRunnableClassesAreClosed ? pageStyles.btnOpenDay : pageStyles.btnCloseDay} disabled={isLoading || !!instanceActionLoading || bulkActionLoadingDate === formattedDayString} title={allPotentiallyRunnableClassesAreClosed ? `Reactivate all sessions for ${format(day, 'MMM d')}` : `Cancel all active sessions for ${format(day, 'MMM d')}`}>
-                            {bulkActionLoadingDate === formattedDayString ? 'Processing...' : (allPotentiallyRunnableClassesAreClosed ? 'Reopen All' : 'Close All')}
-                        </button>
+                      <button 
+                        type="button" 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          handleBulkDayAction(formattedDayString, allPotentiallyRunnableClassesAreClosed);
+                        }} 
+                        className={allPotentiallyRunnableClassesAreClosed ? pageStyles.btnOpenDay : pageStyles.btnCloseDay} 
+                        disabled={
+                          isLoading || 
+                          !!instanceActionLoading || 
+                          bulkActionLoadingDate === formattedDayString
+                        } 
+                        title={
+                          allPotentiallyRunnableClassesAreClosed ? 
+                            `Reactivate all sessions for ${format(day, 'MMM d')}` : 
+                            `Cancel all active sessions for ${format(day, 'MMM d')}`
+                        }
+                      >
+                        {bulkActionLoadingDate === formattedDayString ? 
+                          'Processing...' : 
+                          (allPotentiallyRunnableClassesAreClosed ? 'Reopen All' : 'Close All')
+                        }
+                      </button>
                     </div>
                   )}
                   <FaChevronDown className={pageStyles.dayExpansionIcon} />
                 </div>
-                <div id={`day-content-${formattedDayString}`} className={pageStyles.dayClassesContainer} aria-hidden={!isDayCurrentlyExpanded}>
+                <div 
+                  id={`day-content-${formattedDayString}`} 
+                  className={pageStyles.dayClassesContainer} 
+                  aria-hidden={!isDayCurrentlyExpanded}
+                >
                   {classesForThisDay.length > 0 ? (
                     classesForThisDay.map(item => {
-                      let timeString = `${item.startTime} - ${item.endTime}`; try { const s = parse(item.startTime, "H:mm", new Date()), e = parse(item.endTime, "H:mm", new Date()); if (!isNaN(s) && !isNaN(e)) timeString = `${format(s, 'h:mm a')} - ${format(e, 'h:mm a')}`; } catch (_) {}
+                      let timeString = `${item.startTime} - ${item.endTime}`;
+                      try { 
+                        const s = parse(item.startTime, "H:mm", new Date());
+                        const e = parse(item.endTime, "H:mm", new Date()); 
+                        if (!isNaN(s) && !isNaN(e)) {
+                          timeString = `${format(s, 'h:mm a')} - ${format(e, 'h:mm a')}`;
+                        }
+                      } catch (_) {}
+                      
                       const itemClassId = item.classId || item._id;
                       const instanceUniqueId = `${itemClassId}-${item.specificDate}`;
                       const isInstanceContentExpanded = expandedInstanceId === instanceUniqueId;
-                      const isThisInstanceLoading = instanceActionLoading?.classId === itemClassId && instanceActionLoading?.specificDate === item.specificDate;
+                      const isThisInstanceLoading = instanceActionLoading?.classId === itemClassId && 
+                        instanceActionLoading?.specificDate === item.specificDate;
                       const coachNameForDisplay = item.coach?.name;
 
                       return (
-                        <div key={instanceUniqueId} className={`${pageStyles.coachCardInstance} ${!item.isEffectivelyActive ? pageStyles.cancelledInstance : ''}`}>
+                        <div 
+                          key={instanceUniqueId} 
+                          className={`${pageStyles.coachCardInstance} ${!item.isEffectivelyActive ? pageStyles.cancelledInstance : ''}`}
+                        >
                           <h5>{item.title || 'Class'}</h5>
-                          {coachNameForDisplay && user.role === 'admin' && <p className={pageStyles.coachNameSmall}>Coach: {coachNameForDisplay}</p>}
+                          {coachNameForDisplay && user.role === 'admin' && (
+                            <p className={pageStyles.coachNameSmall}>Coach: {coachNameForDisplay}</p>
+                          )}
                           <p>{timeString}</p>
-                          <p className={pageStyles.attendeeCount}>Attendees: {item.attendees?.length ?? 0}/{item.max_capacity}</p>
-                          {!item.isActive && <p className={pageStyles.seriesInactive}>(Recurring series is Inactive)</p>}
+                          <p className={pageStyles.attendeeCount}>
+                            Attendees: {item.attendees?.length ?? 0}/{item.max_capacity}
+                          </p>
+                          {!item.isActive && (
+                            <p className={pageStyles.seriesInactive}>(Recurring series is Inactive)</p>
+                          )}
                           <div className={pageStyles.instanceActions}>
-                            <button type="button" className={pageStyles.btnViewAttendees} onClick={() => toggleAttendeeList(instanceUniqueId)} disabled={isLoading || isThisInstanceLoading || !!bulkActionLoadingDate}>
-                                {isInstanceContentExpanded ? 'Hide' : 'View'} Attendees
+                            <button 
+                              type="button" 
+                              className={pageStyles.btnViewAttendees} 
+                              onClick={() => toggleAttendeeList(instanceUniqueId)} 
+                              disabled={isLoading || isThisInstanceLoading || !!bulkActionLoadingDate}
+                            >
+                              {isInstanceContentExpanded ? 'Hide' : 'View'} Attendees
                             </button>
                             {item.isActive && (
-                              <button type="button" className={item.isCancelledThisInstance ? pageStyles.btnReactivate : pageStyles.btnCancelInstance} onClick={() => handleToggleInstanceCancellation(itemClassId, item.specificDate, item.isCancelledThisInstance)} disabled={isLoading || isThisInstanceLoading || !!bulkActionLoadingDate}>
-                                  {isThisInstanceLoading ? 'Processing...' : (item.isCancelledThisInstance ? 'Reactivate' : 'Cancel Session')}
+                              <button 
+                                type="button" 
+                                className={item.isCancelledThisInstance ? pageStyles.btnReactivate : pageStyles.btnCancelInstance} 
+                                onClick={() => handleToggleInstanceCancellation(itemClassId, item.specificDate, item.isCancelledThisInstance)} 
+                                disabled={isLoading || isThisInstanceLoading || !!bulkActionLoadingDate}
+                              >
+                                {isThisInstanceLoading ? 
+                                  'Processing...' : 
+                                  (item.isCancelledThisInstance ? 'Reactivate' : 'Cancel Session')
+                                }
                               </button>
                             )}
                           </div>
                           {isInstanceContentExpanded && (
                             <div className={pageStyles.attendeeList}>
                               {(item.attendees && item.attendees.length > 0) ? (
-                                <ul>{item.attendees.map(att => ( <li key={att._id || att.user_id || att.email}> {att.name} {att.email && <span className={pageStyles.attendeeEmail}>({att.email})</span>} </li> ))}</ul>
-                              ) : ( <p className={pageStyles.noAttendeesMessage}>No attendees for this session.</p> )}
+                                <ul>
+                                  {item.attendees.map(att => ( 
+                                    <li key={att._id || att.user_id || att.email}> 
+                                      {att.name} {att.email && <span className={pageStyles.attendeeEmail}>({att.email})</span>} 
+                                    </li> 
+                                  ))}
+                                </ul>
+                              ) : ( 
+                                <p className={pageStyles.noAttendeesMessage}>No attendees for this session.</p> 
+                              )}
                             </div>
                           )}
                         </div>
                       );
                     })
-                  ) : ( <p className={pageStyles.noClassesForDay}>No classes scheduled for this day.</p> )}
+                  ) : ( 
+                    <p className={pageStyles.noClassesForDay}>No classes scheduled for this day.</p> 
+                  )}
                 </div>
               </div>
             );
@@ -426,7 +665,11 @@ const CoachSchedulePage = () => {
         isOpen={isConfirmModalOpen}
         {...confirmModalProps}
       />
-      <DBZGreeting isOpen={showDbzGreeting} onClose={() => setShowDbzGreeting(false)} gifUrl={YOUR_DBZ_GIF_URL} />
+      <DBZGreeting 
+        isOpen={showDbzGreeting} 
+        onClose={() => setShowDbzGreeting(false)} 
+        gifUrl={YOUR_DBZ_GIF_URL} 
+      />
     </div>
   );
 };
